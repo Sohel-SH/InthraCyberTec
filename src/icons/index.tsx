@@ -51,6 +51,13 @@ import HorizontaLDots from "./horizontal-dots.svg";
 import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
+import UpwordIcon from "./upword.svg";
+import DownwardIcon from "./downward.svg";
+import HistoryIcon from "./history.svg";
+import ResearchIcon from "./research.svg";
+import UsersIcon from "./users.svg";
+import UsersData from "./usersData.svg"
+
 
 export {
   DownloadIcon,
@@ -106,4 +113,10 @@ export {
   HorizontaLDots,
   ChevronUpIcon,
   ChatIcon,
+  UpwordIcon,
+  DownwardIcon,
+  HistoryIcon,
+  ResearchIcon,
+  UsersIcon,
+  UsersData
 };
