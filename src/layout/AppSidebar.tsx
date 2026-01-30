@@ -35,28 +35,28 @@ const navItems: NavItem[] = [
   {
     icon: <CalenderIcon />,
     name: "Alerts",
-    path: "/calendar",
+    path: "/alerts",
   },
   {
     icon: <UserCircleIcon />,
     name: "Threat Hunt",
-    path: "/profile",
+    path: "/threat-hunt",
   },
 
   {
     name: "LLM",
     icon: <ListIcon />,
-     path: "/form-elements"
+     path: "/llm"
   },
   {
     name: "News",
     icon: <TableIcon />,
-     path: "/basic-tables"
+     path: "/news"
   },
   {
     name: "Configuration Settings",
     icon: <PageIcon />,   
-    path: "/blank",  
+    path: "/configuration-settings",  
   },
 ];
 
