@@ -1,8 +1,9 @@
 import Link from "next/link";
 import React from "react";
+import T from "@/components/i18n/T";
 
 interface BreadcrumbProps {
-  pageTitle: string;
+  pageTitle: React.ReactNode;
 }
 
 const PageBreadcrumb: React.FC<BreadcrumbProps> = ({ pageTitle }) => {
@@ -21,7 +22,7 @@ const PageBreadcrumb: React.FC<BreadcrumbProps> = ({ pageTitle }) => {
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
               href="/"
             >
-              Home
+              <T k="nav.home" />
               <svg
                 className="stroke-current"
                 width="17"

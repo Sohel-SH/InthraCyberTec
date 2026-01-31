@@ -4,9 +4,11 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useLanguage();
 
 function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
   e.stopPropagation();
@@ -90,7 +92,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
                   fill=""
                 />
               </svg>
-              Edit profile
+              {t("user.editProfile")}
             </DropdownItem>
           </li>
           <li>
@@ -115,7 +117,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
                   fill=""
                 />
               </svg>
-              Account settings
+              {t("user.accountSettings")}
             </DropdownItem>
           </li>
           <li>
@@ -140,7 +142,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
                   fill=""
                 />
               </svg>
-              Support
+              {t("user.support")}
             </DropdownItem>
           </li>
         </ul>
@@ -163,7 +165,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
               fill=""
             />
           </svg>
-          Sign out
+          {t("actions.signOut")}
         </Link>
       </Dropdown>
     </div>

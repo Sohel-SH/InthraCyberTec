@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   BoxCubeIcon,
   CalenderIcon,
@@ -94,6 +95,7 @@ const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -121,9 +123,16 @@ const AppSidebar: React.FC = () => {
               >
                 {nav.icon}
               </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className={`menu-item-text`}>{nav.name}</span>
-              )}
+                {(isExpanded || isHovered || isMobileOpen) && (
+                  <span className={`menu-item-text`}>
+                    {nav.name === "Home" ? t("nav.home") :
+                     nav.name === "Alerts" ? t("nav.alerts") :
+                     nav.name === "Threat Hunt" ? t("nav.threatHunt") :
+                     nav.name === "LLM" ? t("nav.llm") :
+                     nav.name === "News" ? t("nav.news") :
+                     nav.name === "Configuration Settings" ? t("settings.title") : nav.name}
+                  </span>
+                )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
                   className={`ml-auto w-5 h-5 transition-transform duration-200  ${openSubmenu?.type === menuType &&
@@ -150,8 +159,15 @@ const AppSidebar: React.FC = () => {
                   {nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className={`menu-item-text`}>{nav.name}</span>
-                )}
+                <span className={`menu-item-text`}>
+                  {nav.name === "Home" ? t("nav.home") :
+                   nav.name === "Alerts" ? t("nav.alerts") :
+                   nav.name === "Threat Hunt" ? t("nav.threatHunt") :
+                   nav.name === "LLM" ? t("nav.llm") :
+                   nav.name === "News" ? t("nav.news") :
+                   nav.name === "Configuration Settings" ? t("settings.title") : nav.name}
+                </span>
+              )}
               </Link>
             )
           )}

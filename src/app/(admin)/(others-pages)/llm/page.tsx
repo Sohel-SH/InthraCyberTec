@@ -11,6 +11,7 @@ import TextAreaInput from "@/components/form/form-elements/TextAreaInput";
 import ToggleSwitch from "@/components/form/form-elements/ToggleSwitch";
 import { Metadata } from "next";
 import React from "react";
+import T from "@/components/i18n/T";
 
 export const metadata: Metadata = {
   title: "Next.js LLM | TailAdmin - Next.js Dashboard Template",
@@ -22,6 +23,9 @@ export default function LLM() {
   return (
     <div>
       {/* <PageBreadcrumb pageTitle="LLM" /> */}
+      <h1 className="mb-6 text-xl font-semibold text-gray-900">
+        <T k="llm.title" />
+      </h1>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           {/* <DefaultInputs />

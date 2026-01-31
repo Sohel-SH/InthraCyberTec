@@ -1,8 +1,9 @@
 // ---dashboard
 import type { Metadata } from "next"; import React from "react";
- import DashboardCard from "./(ui-elements)/dashboardCards/page"; 
- import {dashboardCards} from "@/app/data/dashboard";
- import LatestThreat from "./(ui-elements)/dashboardCards/latestThreatComp";
+import DashboardCard from "./(ui-elements)/dashboardCards/page"; 
+import {dashboardCards} from "@/app/data/dashboard";
+import LatestThreat from "./(ui-elements)/dashboardCards/latestThreatComp";
+import T from "@/components/i18n/T";
 
 
 
@@ -44,7 +45,7 @@ export default function Ecommerce() {
   return (
     <div className="p-6">
       <h1 className="mb-6 text-xl font-semibold text-gray-900">
-        Dashboard
+        <T k="dashboard.title" />
       </h1>
   {/* Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

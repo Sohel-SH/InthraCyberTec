@@ -2,20 +2,22 @@
 "use client"
 import LineChart from "./lineChart";
 import { latestThreatData } from "@/app/data/latestThreat";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function LatestThreat() {
+  const { t } = useLanguage();
   return (
     <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900">
-          Latest Threat
+          {t("dashboard.latestThreat")}
         </h2>
 
         <select className="rounded-md border border-gray-200 px-3 py-1 text-sm text-gray-500 focus:outline-none">
-          <option>October</option>
-          <option>September</option>
-          <option>August</option>
+          <option>{t("months.october")}</option>
+          <option>{t("months.september")}</option>
+          <option>{t("months.august")}</option>
         </select>
       </div>
 
