@@ -1,16 +1,9 @@
 // import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { Metadata } from "next";
 "use client";
 import React from "react";
 import NewsCard from "@/components/news/NewsCard";
 import { newsArticles } from "@/app/data/news";
 import { useLanguage } from "@/context/LanguageContext";
-
-export const metadata: Metadata = {
-  title: "Next.js News | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js News page TailAdmin Dashboard Template",
-};
-
 
 export default function News() {
   const { t } = useLanguage();
