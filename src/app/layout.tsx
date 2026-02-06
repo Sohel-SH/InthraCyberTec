@@ -3,6 +3,7 @@ import "flatpickr/dist/flatpickr.css";
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+// import GoogleTranslate from '@/components/common/GoogleTranslate';
 import localFont from 'next/font/local';
 
 const vendSans = localFont({
@@ -34,6 +35,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <SidebarProvider>{children}</SidebarProvider>
+            {/* <GoogleTranslate /> */}
           </LanguageProvider>
         </ThemeProvider>
       </body>

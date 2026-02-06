@@ -17,21 +17,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [theme, setTheme] = useState<Theme>("system");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as Theme | null;
+      return saved ?? "system";
+    }
+    return "system";
+  });
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-  const [isInitialized, setIsInitialized] = useState(false);
   const mqlRef = useRef<MediaQueryList | null>(null);
 
   useEffect(() => {
-    // Client-only: initialize from localStorage, default to system
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "system";
-    setTheme(initialTheme);
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isInitialized) return;
+    if (typeof window === "undefined") return;
 
     localStorage.setItem("theme", theme);
 
@@ -79,7 +76,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       applyDarkClass(theme === "dark");
     }
-  }, [theme, isInitialized]);
+  }, [theme]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));

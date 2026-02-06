@@ -296,6 +296,33 @@
   }
 }
 
+/* Hide Google Translate Toolbar */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+body {
+  top: 0px !important;
+}
+.goog-te-spinner-pos {
+  display: none !important;
+}
+/* Hide the Google Translate tooltip */
+.goog-tooltip {
+  display: none !important;
+}
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+/* Ensure the widget is hidden but functional */
+#google_translate_element {
+  display: none;
+}
+/* End Hide Google Translate Toolbar */
+
 /* third-party libraries CSS */
 .apexcharts-legend-text {
   @apply !text-gray-700 dark:!text-gray-400;

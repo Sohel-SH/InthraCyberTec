@@ -1,87 +1,35 @@
-import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import Alert from "@/components/ui/alert/Alert";
 import { Metadata } from "next";
 import React from "react";
 import T from "@/components/i18n/T";
+import AlertsClient from "./AlertsClient";
 
 export const metadata: Metadata = {
-  title: "Next.js Alerts | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Alerts page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: {
+    default: 'Inthra - Advanced Insider Threat Detection and Monitoring',
+    template: '%s | Inthra'
+  },
+  description: 'Inthra offers an advanced platform for comprehensive insider threat detection and monitoring. Leveraging cutting-edge Graph Analytics and custom rules, Inthra provides real-time security insights to protect your organization from internal risks and data breaches. Stay ahead of threats with intelligent anomaly detection and proactive risk management.',
+  keywords: ['insider threat detection', 'security', 'AI', 'Graph Analytics', 'threat monitoring', 'cybersecurity', 'insider risk management', 'advanced threat detection', 'threat intelligence', 'risk assessment', 'data protection', 'fraud detection', 'anomaly detection', 'security analytics', 'threat prevention', 'compliance monitoring'],
+  authors: [{ name: 'Inthra Team' }],
+  creator: 'Inthra',
+  publisher: 'Inthra',
   // other metadata
 };
 
 export default function Alerts() {
   return (
-    <div>
-      <PageBreadcrumb pageTitle={<T k="nav.alerts" />} />
-      <div className="space-y-5 sm:space-y-6">
-        <ComponentCard title={<T k="alerts.title.successAlert" />}> 
-          <Alert
-            variant="success"
-            title={<T k="alerts.successMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={true}
-            linkHref="/"
-            linkText={<T k="actions.learnMore" />}
-          />
-          <Alert
-            variant="success"
-            title={<T k="alerts.successMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={false}
-          />
-        </ComponentCard>
-        <ComponentCard title={<T k="alerts.title.warningAlert" />}> 
-          <Alert
-            variant="warning"
-            title={<T k="alerts.warningMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={true}
-            linkHref="/"
-            linkText={<T k="actions.learnMore" />}
-          />
-          <Alert
-            variant="warning"
-            title={<T k="alerts.warningMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={false}
-          />
-        </ComponentCard>{" "}
-        <ComponentCard title={<T k="alerts.title.errorAlert" />}> 
-          <Alert
-            variant="error"
-            title={<T k="alerts.errorMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={true}
-            linkHref="/"
-            linkText={<T k="actions.learnMore" />}
-          />
-          <Alert
-            variant="error"
-            title={<T k="alerts.errorMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={false}
-          />
-        </ComponentCard>{" "}
-        <ComponentCard title={<T k="alerts.title.infoAlert" />}> 
-          <Alert
-            variant="info"
-            title={<T k="alerts.infoMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={true}
-            linkHref="/"
-            linkText={<T k="actions.learnMore" />}
-          />
-          <Alert
-            variant="info"
-            title={<T k="alerts.infoMessageTitle" />}
-            message={<T k="alerts.cautionMessage" />}
-            showLink={false}
-          />
-        </ComponentCard>
+    <div className="relative">
+      {/* <PageBreadcrumb pageTitle={<T k="nav.alerts" />} /> */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2
+          className="text-3xl font-semibold text-gray-800 dark:text-white/90"
+          x-text="pageName"
+        >
+          Alerts
+        </h2>
       </div>
+      <AlertsClient />
     </div>
   );
 }
