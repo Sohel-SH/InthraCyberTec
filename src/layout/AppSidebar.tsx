@@ -147,14 +147,20 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
-                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                className={`menu-item group sidebar-hover-pill ${isActive(nav.path) ? "text-white rounded-xl" : "menu-item-inactive text-white/80"
                   }`}
+                style={
+                  isActive(nav.path)
+                    ? {
+                        background:
+                          "linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)",
+                        boxShadow: "0px 4px 10px 0px #00000022",
+                      }
+                    : undefined
+                }
               >
                 <span
-                  className={`${isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                    }`}
+                  className={`${isActive(nav.path) ? "text-white" : "menu-item-icon-inactive"}`}
                 >
                   {nav.icon}
                 </span>
@@ -294,7 +300,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-[#101828] dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-[#0E1011] dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${isExpanded || isMobileOpen
           ? "w-[290px]"
           : isHovered
@@ -307,7 +313,7 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+        className={`py-8 flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-center"
           }`}
       >
         <Link href="/">
@@ -339,27 +345,16 @@ const AppSidebar: React.FC = () => {
             //   width={32}
             //   height={32}
             // />
-            <div className="dark:hidden text-center text-white font-semibold   text-3xl sm:text-4xl md:text-5xl
-  lg:text-6xl xl:text-[67px]">INTHRA</div>
+            <div className="dark:hidden text-center text-white font-semibold text-xl sm:text-xl md:text-xl
+  lg:text-xl xl:text-[20px]">INTHRA</div>
           )}
         </Link>
       </div>
+      <div className="mx-4 mb-6 h-px bg-white/10" />
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                  }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "History"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
               {renderMenuItems(navItems, "main")}
             </div>
 

@@ -283,6 +283,19 @@
   background-color: #344054;
 }
 
+/* Sidebar gradient pill hover */
+.sidebar-hover-pill:hover {
+  background: linear-gradient(90deg, #37C7DA 0%, #5452EB 100%);
+  box-shadow: 0px 4px 10px 0px #00000022;
+  color: #ffffff;
+}
+.sidebar-hover-pill:hover .menu-item-icon-inactive {
+  color: #ffffff !important;
+}
+.sidebar-hover-pill:hover .menu-item-text {
+  color: #ffffff !important;
+}
+
 
 
 @layer utilities {
