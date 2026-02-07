@@ -19,7 +19,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 
-import DashboardCard, { DashboardCardView } from "./(ui-elements)/dashboardCards/page";
+import DashboardCard, { DashboardCardView } from "./(ui-elements)/dashboardCards/Card";
 import { dashboardCards as initialCards } from "@/app/data/dashboard";
 import LatestThreat from "./(ui-elements)/dashboardCards/latestThreatComp";
 
