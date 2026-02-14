@@ -1,0 +1,203 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    },
+    {
+      "source": "/admin/others-pages/news",
+      "destination": "/news",
+      "statusCode": 307,
+      "regex": "^(?!/_next)/admin/others-pages/news(?:/)?$"
+    },
+    {
+      "source": "/admin/others-pages/news/:id",
+      "destination": "/news/:id",
+      "statusCode": 307,
+      "regex": "^(?!/_next)/admin/others-pages/news(?:/([^/]+?))(?:/)?$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/news/[id]",
+      "regex": "^/news/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/news/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/alerts",
+      "regex": "^/alerts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/alerts(?:/)?$"
+    },
+    {
+      "page": "/avatars",
+      "regex": "^/avatars(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/avatars(?:/)?$"
+    },
+    {
+      "page": "/badge",
+      "regex": "^/badge(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/badge(?:/)?$"
+    },
+    {
+      "page": "/basic-tables",
+      "regex": "^/basic\\-tables(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/basic\\-tables(?:/)?$"
+    },
+    {
+      "page": "/blank",
+      "regex": "^/blank(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/blank(?:/)?$"
+    },
+    {
+      "page": "/buttons",
+      "regex": "^/buttons(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/buttons(?:/)?$"
+    },
+    {
+      "page": "/calendar",
+      "regex": "^/calendar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/calendar(?:/)?$"
+    },
+    {
+      "page": "/configuration-settings",
+      "regex": "^/configuration\\-settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/configuration\\-settings(?:/)?$"
+    },
+    {
+      "page": "/error-404",
+      "regex": "^/error\\-404(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/error\\-404(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/form-elements",
+      "regex": "^/form\\-elements(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/form\\-elements(?:/)?$"
+    },
+    {
+      "page": "/images",
+      "regex": "^/images(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/images(?:/)?$"
+    },
+    {
+      "page": "/llm",
+      "regex": "^/llm(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/llm(?:/)?$"
+    },
+    {
+      "page": "/modals",
+      "regex": "^/modals(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/modals(?:/)?$"
+    },
+    {
+      "page": "/news",
+      "regex": "^/news(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/news(?:/)?$"
+    },
+    {
+      "page": "/profile",
+      "regex": "^/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/profile(?:/)?$"
+    },
+    {
+      "page": "/signin",
+      "regex": "^/signin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/signin(?:/)?$"
+    },
+    {
+      "page": "/signup",
+      "regex": "^/signup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/signup(?:/)?$"
+    },
+    {
+      "page": "/threat-hunt",
+      "regex": "^/threat\\-hunt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/threat\\-hunt(?:/)?$"
+    },
+    {
+      "page": "/videos",
+      "regex": "^/videos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/videos(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -57,7 +57,11 @@ import HistoryIcon from "./history.svg";
 import ResearchIcon from "./research.svg";
 import UsersIcon from "./users.svg";
 import UsersData from "./usersData.svg"
-
+import ChatExpand from "./chatexpand.svg"
+import NewChat from "./newchat.svg"
+import ChatHistory from "./chathistory.svg"
+import Sheild from "./Shield.svg"
+import ChatArrow from "./ChatArrow.svg"
 
 export {
   DownloadIcon,
@@ -118,5 +122,10 @@ export {
   HistoryIcon,
   ResearchIcon,
   UsersIcon,
-  UsersData
+  UsersData,
+  ChatExpand,
+  NewChat,
+  ChatHistory,
+  Sheild,
+  ChatArrow
 };

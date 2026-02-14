@@ -9,6 +9,7 @@ import {
   BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
+  DocsIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
@@ -53,6 +54,11 @@ const navItems: NavItem[] = [
     name: "News",
     icon: <TableIcon />,
     path: "/news"
+  },
+  {
+    name: "Query",
+    icon: <DocsIcon />,
+    path: "/query"
   },
   {
     name: "Configuration Settings",
@@ -130,6 +136,7 @@ const AppSidebar: React.FC = () => {
                      nav.name === "Threat Hunt" ? t("nav.threatHunt") :
                      nav.name === "LLM" ? t("nav.llm") :
                      nav.name === "News" ? t("nav.news") :
+                     nav.name === "Query" ? t("nav.query") :
                      nav.name === "Configuration Settings" ? t("settings.title") : nav.name}
                   </span>
                 )}
@@ -171,6 +178,7 @@ const AppSidebar: React.FC = () => {
                    nav.name === "Threat Hunt" ? t("nav.threatHunt") :
                    nav.name === "LLM" ? t("nav.llm") :
                    nav.name === "News" ? t("nav.news") :
+                   nav.name === "Query" ? t("nav.query") :
                    nav.name === "Configuration Settings" ? t("settings.title") : nav.name}
                 </span>
               )}

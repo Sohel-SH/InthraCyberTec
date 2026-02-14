@@ -18,26 +18,24 @@
   "lang.frFR": "Francés",
   "theme.system": "Sistema",
   "theme.light": "Claro",
-  "theme.dark": "Oscuro"
-  ,
+  "theme.dark": "Oscuro",
   "nav.home": "Inicio",
   "nav.alerts": "Alertas",
   "nav.threatHunt": "Búsqueda de amenazas",
   "nav.llm": "LLM",
   "nav.news": "Noticias",
+  "nav.query": "Consulta",
   "header.searchPlaceholder": "Buscar o escribir comando...",
   "user.editProfile": "Editar perfil",
   "user.accountSettings": "Configuración de la cuenta",
   "user.support": "Soporte",
-  "actions.signOut": "Cerrar sesión"
-  ,
+  "actions.signOut": "Cerrar sesión",
   "news.title": "Noticias",
   "news.notFoundTitle": "Artículo no encontrado",
   "news.notFoundMessage": "No pudimos encontrar la noticia que buscabas.",
   "error.title": "ERROR",
   "error.message": "¡No podemos encontrar la página que estás buscando!",
-  "actions.backHome": "Volver a la página de inicio"
-  ,
+  "actions.backHome": "Volver a la página de inicio",
   "dashboard.title": "Panel",
   "dashboard.latestThreat": "Última amenaza",
   "months.octubre": "Octubre",
@@ -62,5 +60,13 @@
   "dashboard.card.totalUsersData": "Datos de usuarios totales",
   "dashboard.change.upYesterday": "Subió desde ayer",
   "dashboard.change.upPastWeek": "Subió desde la semana pasada",
-  "dashboard.change.downYesterday": "Bajó desde ayer"
+  "dashboard.change.downYesterday": "Bajó desde ayer",
+  "query.title": "Consulta",
+  "query.inputLabel": "Ingresa tu consulta",
+  "query.inputPlaceholder": "Escribe tu consulta aquí...",
+  "query.runButton": "Ejecutar consulta",
+  "query.clearButton": "Limpiar",
+  "query.running": "Ejecutando...",
+  "query.result": "Resultado"
+}
 }

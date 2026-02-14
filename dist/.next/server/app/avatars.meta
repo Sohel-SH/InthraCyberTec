@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(admin)/layout,_N_T_/(admin)/(ui-elements)/layout,_N_T_/(admin)/(ui-elements)/avatars/layout,_N_T_/(admin)/(ui-elements)/avatars/page,_N_T_/avatars"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KGFkbWluKQ/!KHVpLWVsZW1lbnRzKQ/avatars/__PAGE__",
+    "/!KGFkbWluKQ/!KHVpLWVsZW1lbnRzKQ/avatars",
+    "/!KGFkbWluKQ/!KHVpLWVsZW1lbnRzKQ",
+    "/!KGFkbWluKQ",
+    "/_index",
+    "/_head"
+  ]
+}

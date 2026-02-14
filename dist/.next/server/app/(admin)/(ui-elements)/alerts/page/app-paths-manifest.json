@@ -1,0 +1,3 @@
+{
+  "/(admin)/(ui-elements)/alerts/page": "app/(admin)/(ui-elements)/alerts/page.js"
+}

@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(full-width-pages)/layout,_N_T_/(full-width-pages)/(auth)/layout,_N_T_/(full-width-pages)/(auth)/signin/layout,_N_T_/(full-width-pages)/(auth)/signin/page,_N_T_/signin"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGF1dGgp/signin/__PAGE__",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGF1dGgp/signin",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGF1dGgp",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp",
+    "/_index",
+    "/_head"
+  ]
+}

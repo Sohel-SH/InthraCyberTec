@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(full-width-pages)/layout,_N_T_/(full-width-pages)/(error-pages)/layout,_N_T_/(full-width-pages)/(error-pages)/error-404/layout,_N_T_/(full-width-pages)/(error-pages)/error-404/page,_N_T_/error-404"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGVycm9yLXBhZ2VzKQ/error-404/__PAGE__",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGVycm9yLXBhZ2VzKQ/error-404",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp/!KGVycm9yLXBhZ2VzKQ",
+    "/!KGZ1bGwtd2lkdGgtcGFnZXMp",
+    "/_index",
+    "/_head"
+  ]
+}

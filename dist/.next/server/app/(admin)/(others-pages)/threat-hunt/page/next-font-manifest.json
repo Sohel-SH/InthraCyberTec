@@ -1,0 +1,19 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/src/app/(admin)/(others-pages)/threat-hunt/page": [
+      "static/media/VendSans_Light-s.p.e4a4fcae.ttf",
+      "static/media/VendSans_LightItalic-s.p.e1af9d4f.ttf",
+      "static/media/VendSans_Regular-s.p.a317a834.ttf",
+      "static/media/VendSans_Italic-s.p.3960015a.ttf",
+      "static/media/VendSans_Medium-s.p.202a6ca8.ttf",
+      "static/media/VendSans_MediumItalic-s.p.5a216a0c.ttf",
+      "static/media/VendSans_SemiBold-s.p.a634c903.ttf",
+      "static/media/VendSans_SemiBoldItalic-s.p.964b3f14.ttf",
+      "static/media/VendSans_Bold-s.p.391b59b0.ttf",
+      "static/media/VendSans_BoldItalic-s.p.2f9ab179.ttf"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

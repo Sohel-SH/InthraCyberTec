@@ -1,0 +1,348 @@
+ "use client";
+ 
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import {
+  ArrowRightIcon,
+  ChatExpand,
+  NewChat,
+  ChatHistory,
+  Sheild,
+  ChatArrow,
+  UserCircleIcon,
+} from "@/icons";
+
+type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  isTyping?: boolean;
+};
+
+type ChatSession = {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: number;
+};
+
+const DUMMY_RESPONSES = [
+  "That's an interesting question about security! Based on our graph analytics, we can monitor that for you.",
+  "I've analyzed the threat hunt logs, and everything seems to be within normal parameters.",
+  "The advanced insider threat detection system is currently processing your request.",
+  "Inthra Team is always working to improve these insights. Is there anything specific you'd like to dive into?",
+];
+
+export default function LLMClient() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const currentSession = useMemo(
+    () => sessions.find((s) => s.id === currentSessionId) || null,
+    [sessions, currentSessionId]
+  );
+
+  const messages = useMemo(
+    () => currentSession?.messages || [],
+    [currentSession]
+  );
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const simulateTyping = (text: string, messageId: string, sessionId: string) => {
+    let currentText = "";
+    const words = text.split(" ");
+    let i = 0;
+
+    const interval = setInterval(() => {
+      if (i < words.length) {
+        currentText += (i === 0 ? "" : " ") + words[i];
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  messages: s.messages.map((m) =>
+                    m.id === messageId ? { ...m, content: currentText } : m
+                  ),
+                }
+              : s
+          )
+        );
+        i++;
+      } else {
+        clearInterval(interval);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  messages: s.messages.map((m) =>
+                    m.id === messageId ? { ...m, isTyping: false } : m
+                  ),
+                }
+              : s
+          )
+        );
+        setIsTyping(false);
+      }
+    }, 50);
+  };
+
+  const handleNewChat = () => {
+    setCurrentSessionId(null);
+    setInputValue("");
+  };
+
+  const handleSelectSession = (id: string) => {
+    setCurrentSessionId(id);
+  };
+
+  const handleSend = () => {
+    if (!inputValue.trim() || isTyping) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: inputValue,
+    };
+
+    let targetSessionId = currentSessionId;
+
+    if (!targetSessionId) {
+      // Create new session
+      const newSession: ChatSession = {
+        id: Date.now().toString(),
+        title: inputValue.slice(0, 30) + (inputValue.length > 30 ? "..." : ""),
+        messages: [userMessage],
+        timestamp: Date.now(),
+      };
+      setSessions((prev) => [newSession, ...prev]);
+      setCurrentSessionId(newSession.id);
+      targetSessionId = newSession.id;
+    } else {
+      // Add to existing session
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === targetSessionId
+            ? { ...s, messages: [...s.messages, userMessage] }
+            : s
+        )
+      );
+    }
+
+    setInputValue("");
+    setIsTyping(true);
+
+    // Simulate AI thinking then typing
+    setTimeout(() => {
+      const assistantMessageId = (Date.now() + 1).toString();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        isTyping: true,
+      };
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === targetSessionId
+            ? { ...s, messages: [...s.messages, assistantMessage] }
+            : s
+        )
+      );
+
+      const responseText =
+        DUMMY_RESPONSES[Math.floor(Math.random() * DUMMY_RESPONSES.length)];
+      if (targetSessionId) {
+        simulateTyping(responseText, assistantMessageId, targetSessionId);
+      }
+    }, 800);
+  };
+
+  return (
+    <div>
+      <h1 className="mb-6 text-3xl font-semibold text-gray-800 dark:text-white/90">LLM</h1>
+      <div className="flex min-h-[70vh] rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] overflow-hidden">
+        <aside
+          className={[
+            "flex-shrink-0 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-out bg-white dark:bg-gray-900",
+            sidebarOpen ? "w-64" : "w-13",
+          ].join(" ")}
+        >
+          <div className="px-3 py-3 pb-1">
+            <button
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white dark:bg-gray-800 hover:bg-gray-50 dark:text-white/90 dark:hover:bg-white/5"
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Toggle sidebar"
+            >
+              <ChatExpand width={18} height={18} />
+            </button>
+          </div>
+          <nav className="px-2">
+            <button
+              className={[
+                "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition text-gray-700 hover:bg-gray-50 dark:text-white/90 dark:hover:bg-white/5",
+                !currentSessionId ? "bg-gray-100 dark:bg-white/10" : "",
+              ].join(" ")}
+              onClick={handleNewChat}
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center">
+                <NewChat width={18} height={18} />
+              </span>
+              {sidebarOpen && <span>New Chat</span>}
+            </button>
+            <div
+              className={[
+                "mt-1 flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-gray-700 dark:text-white/90",
+              ].join(" ")}
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center">
+                <ChatHistory width={18} height={18} />
+              </span>
+              {sidebarOpen && <span>History</span>}
+            </div>
+            {sidebarOpen && (
+              <>
+                <div className="mt-3 px-2 text-xs font-medium text-gray-400 dark:text-gray-500">
+                  Your Chats
+                </div>
+                <div className="mt-2 space-y-1 px-2 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                  {sessions.length > 0 ? (
+                    sessions.map((session) => (
+                      <button
+                        key={session.id}
+                        onClick={() => handleSelectSession(session.id)}
+                        className={[
+                          "block w-full truncate rounded-md px-2 py-2 text-left text-sm transition",
+                          currentSessionId === session.id
+                            ? "bg-gray-100 text-blue-600 dark:bg-white/10 dark:text-blue-400"
+                            : "text-gray-700 hover:bg-gray-50 dark:text-white/90 dark:hover:bg-white/5",
+                        ].join(" ")}
+                      >
+                        {session.title}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-2 py-2 text-xs text-gray-400 italic">
+                      No recent chats
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </nav>
+        </aside>
+        <div className="flex-1 px-5 py-7 xl:px-10 xl:py-12" style={{ boxShadow: "20px 20px 20px 0px #00000014" }}>
+          <div className="mx-auto flex max-w-[900px] flex-col items-center justify-center px-4 pt-12">
+            <div className="flex w-full max-w-[750px] flex-col items-center">
+              {messages.length === 0 ? (
+                <>
+                  <div className="mb-8 text-gray-300 dark:text-gray-700">
+                    <Sheild />
+                  </div>
+                  <p className="mb-12 text-center text-base font-normal leading-relaxed text-gray-800 dark:text-gray-300">
+                    Security is essential and Hard, We are at &quot;&lt;Company_name&gt;&quot;
+                    <br />
+                    had made it fun for you. Lets dive to details&quot;
+                  </p>
+                </>
+              ) : (
+                <div className="mb-8 flex h-[50vh] w-full flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex w-full gap-3 ${
+                        msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+                        {msg.role === "user" ? (
+                          <UserCircleIcon className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <Sheild width={16} height={16} className="text-blue-600" />
+                        )}
+                      </div>
+                      <div
+                        className={`relative max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                          msg.role === "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-white text-gray-800 border border-gray-100 dark:bg-white/5 dark:text-white/90 dark:border-gray-800"
+                        }`}
+                      >
+                        {msg.content}
+                        {msg.isTyping && (
+                          <span className="ml-1 inline-block h-4 w-1 animate-pulse bg-gray-400 dark:bg-gray-500" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && messages[messages.length - 1]?.role === "user" && (
+                    <div className="flex w-full gap-3 flex-row">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+                        <Sheild width={16} height={16} className="text-blue-600" />
+                      </div>
+                      <div className="bg-white text-gray-800 border border-gray-100 dark:bg-white/5 dark:text-white/90 dark:border-gray-800 rounded-2xl px-4 py-3 shadow-sm">
+                        <div className="flex gap-1">
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+
+              <div className="w-full">
+                <div
+                  className="rounded-2xl p-[1.5px]"
+                  style={{
+                    background: "linear-gradient(180deg, #29DFD3 0%, #4B3ADB 100%)",
+                  }}
+                >
+                  <div className="flex items-center justify-between rounded-2xl bg-white px-6 py-3 dark:bg-gray-900">
+                    <input
+                      type="text"
+                      placeholder="Your Message"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSend();
+                      }}
+                      className="flex-1 bg-transparent text-base text-gray-700 outline-none placeholder:text-gray-400 dark:text-white/90 dark:placeholder:text-gray-500"
+                    />
+                    <button
+                      onClick={handleSend}
+                      className="ml-3 inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105 active:scale-95"
+                      style={{
+                        background: "linear-gradient(180deg, #29DFD3 0%, #4B3ADB 100%)",
+                        boxShadow: "0 4px 12px rgba(43, 132, 255, 0.3)",
+                      }}
+                      aria-label="Send"
+                    >
+                      <ChatArrow />
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+                  This is a beta release. We appreciate your input as we work to make it even better.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

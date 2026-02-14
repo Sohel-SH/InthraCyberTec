@@ -36,10 +36,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return "en-US";
   });
 
-  const [messages, setMessages] = useState<Messages>(() => loadMessages(lang));
+  const messages = useMemo(() => loadMessages(lang), [lang]);
 
   useEffect(() => {
-    setMessages(loadMessages(lang));
     if (typeof window !== "undefined") {
       localStorage.setItem("lang", lang);
       document.documentElement.setAttribute("lang", lang.startsWith("en") ? "en" : lang.split("-")[0]);

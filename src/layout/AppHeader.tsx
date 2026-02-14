@@ -2,6 +2,8 @@
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 // import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
+import AuthModal from "@/components/auth/AuthModal";
+import { useModal } from "@/hooks/useModal";
 import { useSidebar } from "@/context/SidebarContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Image from "next/image";
@@ -10,6 +12,8 @@ import React, { useState ,useEffect,useRef} from "react";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulated auth state
+  const { isOpen: isAuthOpen, openModal: openAuth, closeModal: closeAuth } = useModal();
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const { t } = useLanguage();
@@ -178,8 +182,22 @@ const AppHeader: React.FC = () => {
             {/* <!-- Notification Menu Area --> */}
           </div>
           {/* <!-- User Area --> */}
-          <UserDropdown /> 
-    
+          {isLoggedIn ? (
+            <UserDropdown onLogout={() => setIsLoggedIn(false)} />
+          ) : (
+            <button
+              onClick={openAuth}
+              className="flex items-center justify-center rounded-full bg-[#1C2434] px-6 py-2 text-sm font-medium text-white transition-all hover:bg-opacity-90 dark:bg-brand-500"
+            >
+              Login
+            </button>
+          )}
+
+          <AuthModal
+            isOpen={isAuthOpen}
+            onClose={closeAuth}
+            onLoginSuccess={() => setIsLoggedIn(true)}
+          />
         </div>
       </div>
     </header>
