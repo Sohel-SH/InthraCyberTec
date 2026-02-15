@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 import {
   DndContext,
   closestCenter,
@@ -19,22 +18,32 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 
-import DashboardCard, { DashboardCardView } from "./(ui-elements)/dashboardCards/Card";
+import DashboardCard, {
+  DashboardCardView,
+} from "./(ui-elements)/dashboardCards/Card";
+
 import { dashboardCards as initialCards } from "@/app/data/dashboard";
 import LatestThreat from "./(ui-elements)/dashboardCards/latestThreatComp";
-
-// ❗ metadata must be removed in client component
-// Move metadata to layout.tsx if needed
 
 export default function DashboardClient() {
   const [cards, setCards] = useState(initialCards);
   const [activeId, setActiveId] = useState<string | number | null>(null);
 
+  // ⭐ NEW — expanded state per card
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const toggleExpand = (id: string | number) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
@@ -49,14 +58,9 @@ export default function DashboardClient() {
       setCards((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-
         return arrayMove(items, oldIndex, newIndex);
       });
     }
-    setActiveId(null);
-  }
-
-  function handleDragCancel() {
     setActiveId(null);
   }
 
@@ -68,32 +72,34 @@ export default function DashboardClient() {
     <div className="p-6">
       <h1 className="mb-6 text-xl font-semibold text-gray-900">Dashboard</h1>
 
-      {/* DND Wrapper */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
       >
         <SortableContext
           items={cards.map((c) => c.id)}
           strategy={rectSortingStrategy}
         >
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* ⭐ IMPORTANT — grid auto rows allow expansion */}
+          <div className="grid grid-cols-1 gap-6 auto-rows-[160px] sm:grid-cols-2 lg:grid-cols-4">
             {cards.map((card) => (
-              <DashboardCard key={card.id} card={card} />
+              <DashboardCard
+                key={card.id}
+                card={card}
+                isExpanded={!!expandedCards[card.id]}
+                onToggleExpand={() => toggleExpand(card.id)}
+              />
             ))}
           </div>
         </SortableContext>
+
         <DragOverlay>
-          {activeCard ? (
-            <DashboardCardView card={activeCard} isOverlay />
-          ) : null}
+          {activeCard ? <DashboardCardView card={activeCard} isOverlay /> : null}
         </DragOverlay>
       </DndContext>
 
-      {/* Latest Threat */}
       <LatestThreat />
     </div>
   );

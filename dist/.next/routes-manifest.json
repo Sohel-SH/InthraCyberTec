@@ -68,52 +68,10 @@
       "namedRegex": "^/alerts(?:/)?$"
     },
     {
-      "page": "/avatars",
-      "regex": "^/avatars(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/avatars(?:/)?$"
-    },
-    {
-      "page": "/badge",
-      "regex": "^/badge(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/badge(?:/)?$"
-    },
-    {
-      "page": "/basic-tables",
-      "regex": "^/basic\\-tables(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/basic\\-tables(?:/)?$"
-    },
-    {
-      "page": "/blank",
-      "regex": "^/blank(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/blank(?:/)?$"
-    },
-    {
-      "page": "/buttons",
-      "regex": "^/buttons(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/buttons(?:/)?$"
-    },
-    {
-      "page": "/calendar",
-      "regex": "^/calendar(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/calendar(?:/)?$"
-    },
-    {
       "page": "/configuration-settings",
       "regex": "^/configuration\\-settings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/configuration\\-settings(?:/)?$"
-    },
-    {
-      "page": "/error-404",
-      "regex": "^/error\\-404(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/error\\-404(?:/)?$"
     },
     {
       "page": "/favicon.ico",
@@ -122,28 +80,10 @@
       "namedRegex": "^/favicon\\.ico(?:/)?$"
     },
     {
-      "page": "/form-elements",
-      "regex": "^/form\\-elements(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/form\\-elements(?:/)?$"
-    },
-    {
-      "page": "/images",
-      "regex": "^/images(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/images(?:/)?$"
-    },
-    {
       "page": "/llm",
       "regex": "^/llm(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/llm(?:/)?$"
-    },
-    {
-      "page": "/modals",
-      "regex": "^/modals(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/modals(?:/)?$"
     },
     {
       "page": "/news",
@@ -156,6 +96,12 @@
       "regex": "^/profile(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/profile(?:/)?$"
+    },
+    {
+      "page": "/query",
+      "regex": "^/query(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/query(?:/)?$"
     },
     {
       "page": "/signin",
@@ -174,12 +120,6 @@
       "regex": "^/threat\\-hunt(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/threat\\-hunt(?:/)?$"
-    },
-    {
-      "page": "/videos",
-      "regex": "^/videos(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/videos(?:/)?$"
     }
   ],
   "dataRoutes": [],
