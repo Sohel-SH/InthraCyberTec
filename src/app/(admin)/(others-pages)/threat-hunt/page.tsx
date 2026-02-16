@@ -72,7 +72,7 @@ export default function ThreatHunt() {
   //   - Method: API_CONFIG.METHOD (default: POST)
   //   - Body: { node_id: nodeId }
   // ============================================================================
-  const USE_LOCAL_TEST_MODE = true;
+  const USE_LOCAL_TEST_MODE = false;
 
   // Local graph data for testing - matches your API response format exactly
   // Your API should return data in this exact format:
@@ -146,8 +146,8 @@ export default function ThreatHunt() {
         console.log('Using local test data for node:', nodeId);
       } else {
         // Real API call
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT, {
-          method: API_CONFIG.METHOD || 'POST',
+        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/graph", {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ node_id: nodeId })
         });
