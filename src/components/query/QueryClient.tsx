@@ -24,11 +24,11 @@ interface QueryResult {
   row_count?: number;
 }
 
-type QueryLanguage = "python" | "sql";
+type QueryLanguage = "pyspark" | "sql";
 
 export default function QueryClient() {
   const [queryInput, setQueryInput] = useState("");
-  const [language, setLanguage] = useState<QueryLanguage>("python");
+  const [language, setLanguage] = useState<QueryLanguage>("pyspark");
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function QueryClient() {
 
   // Sample starter queries
   const sampleQueries = {
-    python: `# PySpark Query Example
+    pyspark: `# PySpark Query Example
 df = spark.read.table("security_events")
 df.filter(df.severity == "Critical").show()`,
     sql: `-- SQL Query Example
@@ -131,7 +131,15 @@ LIMIT 100`,
             override: "",
             location: "Exchange Online",
             severity: "High",
-            source: "Purview DLP"
+            source: "Purview DLP",
+            source1: "Purview DLP",
+            source2: "Purview DLP",
+            source3: "Purview DLP",
+            source4: "Purview DLP",
+            source5: "Purview DLP",
+            source6: "Purview DLP",
+            source7: "Purview DLP",
+            source8: "Purview DLP"
           },
           {
             id: 2,
@@ -144,7 +152,15 @@ LIMIT 100`,
             status: "Success",
             mfa_used: true,
             risk_score: 15,
-            source: "UEBA"
+            source: "UEBA",
+            source1: "UEBA",
+            source2: "UEBA",
+            source3: "UEBA",
+            source4: "UEBA",
+            source5: "UEBA",
+            source6: "UEBA",
+            source7: "UEBA",
+            source8: "UEBA"
           },
           {
             id: 3,
@@ -158,7 +174,15 @@ LIMIT 100`,
             duration_ms: 150,
             threat_name: "Trojan.Generic",
             severity: "Critical",
-            source: "Zscaler"
+            source: "Zscaler",
+            source1: "Zscaler",
+            source2: "Zscaler",
+            source3: "Zscaler",
+            source4: "Zscaler",
+            source5: "Zscaler",
+            source6: "Zscaler",
+            source7: "Zscaler",
+            source8: "Zscaler"
           },
           {
             id: 4,
@@ -171,7 +195,15 @@ LIMIT 100`,
             employee_name: "Bob Jones",
             department: "IT",
             severity: "Medium",
-            source: "Physical Security"
+            source: "Physical Security",
+            source1: "Physical Security",
+            source2: "Physical Security",
+            source3: "Physical Security",
+            source4: "Physical Security",
+            source5: "Physical Security",
+            source6: "Physical Security",
+            source7: "Physical Security",
+            source8: "Physical Security"
           },
           {
             id: 5,
@@ -439,7 +471,7 @@ LIMIT 100`,
 
     return (
       <div className="w-full h-full overflow-x-auto">
-        <table className="w-full table-fixed border-collapse font-mono text-xs">
+        <table className="w-full border-collapse font-mono text-xs">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
               {columns.map((col) => (
@@ -534,7 +566,7 @@ LIMIT 100`,
               disabled={isRunning}
               className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
             >
-              <option value="python">PySpark (Python)</option>
+              <option value="pyspark">PySpark</option>
               <option value="sql">SQL</option>
             </select>
           </div>
@@ -562,6 +594,7 @@ LIMIT 100`,
           onMount={handleEditorDidMount}
           theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
           options={{
+            renderLineHighlight: 'none',
             minimap: { enabled: false },
             fontSize: 14,
             lineNumbers: "on",
