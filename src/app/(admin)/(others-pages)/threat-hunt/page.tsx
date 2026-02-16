@@ -146,10 +146,110 @@ export default function ThreatHunt() {
         console.log('Using local test data for node:', nodeId);
       } else {
         // Real API call
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/graph", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ node_id: nodeId })
+        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph" + "?node_id=" + nodeId, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status} ${res.statusText}`);
+        }
+
+        data = await res.json();
+      }
+      
+      // Preserve raw response for testing/inspection
+      setRawResponse(data);
+
+      // Normalize response: accept either `links` or `edges` (with src/dst)
+      const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
+      let allEdges: any[] = [];
+      if (Array.isArray(data.links)) allEdges = data.links;
+      else if (Array.isArray(data.edges)) allEdges = data.edges;
+
+      let relevantNodes: any[];
+      let links: any[];
+
+      if (expand) {
+        // When expanding: show the node and its direct neighbors
+        const relevantEdges = allEdges.filter((e: any) => {
+          const src = e.src ?? e.source;
+          const dst = e.dst ?? e.target;
+          return src === nodeId || dst === nodeId;
+        });
+
+        // Get IDs of nodes connected to the clicked node
+        const connectedNodeIds = new Set<string>([nodeId]);
+        relevantEdges.forEach((e: any) => {
+          const src = e.src ?? e.source;
+          const dst = e.dst ?? e.target;
+          connectedNodeIds.add(src);
+          connectedNodeIds.add(dst);
+        });
+
+        // Filter nodes to only include the clicked node and its neighbors
+        relevantNodes = allNodes.filter((n: any) => connectedNodeIds.has(n.id));
+
+        // Convert edges to links format
+        links = relevantEdges.map((e: any) => ({
+          source: e.src ?? e.source,
+          target: e.dst ?? e.target
+        }));
+      } else {
+        // Initial load: show only the single node, no connections
+        relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
+        links = [];
+      }
+
+      // Validate normalized data
+      if (!Array.isArray(relevantNodes)) {
+        throw new Error('Invalid graph data format');
+      }
+
+      const normalized = {
+        nodes: relevantNodes.map((n: any) => ({ 
+          id: String(n.id), 
+          label: n.label ?? String(n.id),
+          type: n.type 
+        })),
+        links
+      };
+
+      if (expand) {
+        setGraphData(prev => mergeGraphData(prev, normalized));
+      } else {
+        setGraphData(normalized);
+      }
+
+      // Don't mark as expanded on initial load, only when actually expanding
+      if (expand) {
+        setExpandedNodes(prev => new Set(prev).add(nodeId));
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
+      setError(errorMsg);
+      console.error('Graph fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [mergeGraphData]);
+
+    const expandGraph = useCallback(async (nodeId: string, expand = false) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let data: any;
+      
+      if (USE_LOCAL_TEST_MODE) {
+        // Local test mode: use the full graph data
+        data = LOCAL_GRAPH_MAP;
+        console.log('Using local test data for node:', nodeId);
+      } else {
+        // Real API call
+        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph/expand" + "?node_id=" + nodeId, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
         });
 
         if (!res.ok) {
@@ -243,9 +343,9 @@ export default function ThreatHunt() {
   const handleNodeClick = useCallback((node: NodeType) => {
     if (!expandedNodes.has(node.id)) {
       console.log('Expanding node:', node.id);
-      fetchGraph(node.id, true);
+      expandGraph(node.id, true);
     }
-  }, [expandedNodes, fetchGraph]);
+  }, [expandedNodes, expandGraph]);
 
   return (
     <div>

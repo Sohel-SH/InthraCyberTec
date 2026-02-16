@@ -267,7 +267,7 @@ LIMIT 100`,
         // REAL API CALL (Commented out for testing)
         // ============================================================
         
-        const response = await fetch(API_CONFIG.QUERY_ENDPOINT + "/run", {
+        const response = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/execute", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
