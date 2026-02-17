@@ -10,4 +10,4 @@
 :HL["/_next/static/media/VendSans_Regular-s.p.a317a834.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/VendSans_SemiBold-s.p.a634c903.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/VendSans_SemiBoldItalic-s.p.964b3f14.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
-0:{"buildId":"mFhoRNmiarOUpekikGjR8","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"(admin)","paramType":null,"paramKey":"(admin)","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+0:{"buildId":"zI9ROpZXX7kvO4-P5Lg4s","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"(admin)","paramType":null,"paramKey":"(admin)","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}

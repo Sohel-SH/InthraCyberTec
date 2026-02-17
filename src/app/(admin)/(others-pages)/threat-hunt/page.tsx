@@ -27,13 +27,12 @@ type GraphData = {
 
 export default function ThreatHunt() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
-  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [expanding, setExpanding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<any>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [topUsers, setTopUsers] = useState<Array<{ user: string; risk_score?: number }>>([
-    { user: 'CCP0001', risk_score: 95 }
-  ]);
+  const [topUsers, setTopUsers] = useState<Array<{ user: string; count_datetime: number; node_id: string }>>([]);
   const [canvasSize, setCanvasSize] = useState({ width: 835, height: 600 });
 
   const fgRef = useRef<any>(null);
@@ -62,49 +61,64 @@ export default function ThreatHunt() {
     }
   }, [graphData]);
 
-  // ============================================================================
-  // TEST MODE CONFIGURATION
-  // ============================================================================
-  // Set USE_LOCAL_TEST_MODE = true to use LOCAL_GRAPH_MAP test data
-  // Set USE_LOCAL_TEST_MODE = false to use real API calls
-  // When switching to API mode, the code will automatically call:
-  //   - Endpoint: API_CONFIG.QUERY_ENDPOINT
-  //   - Method: API_CONFIG.METHOD (default: POST)
-  //   - Body: { node_id: nodeId }
-  // ============================================================================
   const USE_LOCAL_TEST_MODE = false;
 
-  // Local graph data for testing - matches your API response format exactly
-  // Your API should return data in this exact format:
-  // {
-  //   nodes: [{ id, type, label }, ...],
-  //   edges: [{ src, dst, type, timestamp, properties }, ...]
-  // }
   const LOCAL_GRAPH_MAP = {
     nodes: [
-      { id: "40.83.138.250", type: "IP", label: "40.83.138.250" },
-      { id: "CCP0001", type: "User", label: "CCP0001" },
-      { id: "Service Admin", type: "Department", label: "Service Admin" },
-      { id: "hamsan.yektanet.com", type: "WebDomain", label: "hamsan.yektanet.com" },
-      { id: "cdn.example.org", type: "WebDomain", label: "cdn.example.org" },
-      { id: "192.0.2.45", type: "IP", label: "192.0.2.45" },
-      { id: "ISP-Example", type: "ISP", label: "ISP-Example" },
-      { id: "Geo-US", type: "Location", label: "Geo-US" },
-      { id: "admin.jane", type: "User", label: "admin.jane" },
-      { id: "admin.bob", type: "User", label: "admin.bob" }
+      { id: "host:hamsan.yektanet.com", label: "hamsan.yektanet.com", type: "HOSTNAME", flags: [], properties: { cat: "Corporate Marketing" }, source: "Zscaler_Proxy" },
+      { id: "usr:CCP0001", label: "CCP0001", type: "USER", flags: [], properties: { dept: "Service Admin", loc: "Road Warrior" }, source: "Zscaler_Proxy" },
+      { id: "usr:CCP0002", label: "gd", type: "USER", flags: [], properties: { dept: "Service Admin", loc: "Road Warrior" }, source: "Zscaler_Proxy" },
+      { id: "ip:40.83.138.250", label: "40.83.138.250", type: "IP", flags: [], properties: {}, source: "Zscaler_Proxy" },
     ],
     edges: [
-      { src: "CCP0001", dst: "hamsan.yektanet.com", type: "ACCESSED_URL", timestamp: "2021-06-17T09:23:16+00:00", properties: '{"status":"200","requestsize":"574","responsesize":"65","transactionsize":"639","pagerisk":"0"}' },
-      { src: "CCP0001", dst: "40.83.138.250", type: "USED_IP", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "CCP0001", dst: "Service Admin", type: "MEMBER_OF", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "hamsan.yektanet.com", dst: "cdn.example.org", type: "REDIRECTS_TO", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "hamsan.yektanet.com", dst: "192.0.2.45", type: "RESOLVES_TO", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "40.83.138.250", dst: "ISP-Example", type: "PROVIDED_BY", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "40.83.138.250", dst: "Geo-US", type: "LOCATED_IN", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "admin.jane", dst: "Service Admin", type: "MEMBER_OF", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' },
-      { src: "admin.bob", dst: "Service Admin", type: "MEMBER_OF", timestamp: "2021-06-17T09:23:16+00:00", properties: '{}' }
+      { id: "edge001", source: "usr:CCP0001", target: "host:hamsan.yektanet.com", label: "ACCESSED", ts: "2026-02-05T16:35:04", properties: { action: "Allowed", status: "200" } },
+      { id: "edge002", source: "usr:CCP0001", target: "ip:40.83.138.250", label: "USED_IP", ts: "2026-02-05T16:35:04", properties: { useragent: "Mozilla/5.0" } },
+      { id: "edge003", source: "usr:CCP0002", target: "ip:93.137.163.165", label: "USED_IP", ts: "2026-02-05T16:35:04", properties: { useragent: "Mozilla/5.0" } },
+      { id: "edge004", source: "usr:CCP0002", target: "host:hamsan.yektanet.com", label: "ACCESSED", ts: "2026-02-05T16:35:04", properties: { action: "Allowed", status: "200" } },
     ]
   };
+
+  const LOCAL_TOP_USERS = [
+  { user: "CCP0001", count_datetime: 158, node_id: "usr:CCP0001" },
+  { user: "CCP0002", count_datetime: 136, node_id: "usr:CCP0002" },
+  { user: "CCP0003", count_datetime: 131, node_id: "usr:CCP0003" },
+  { user: "CCP0004", count_datetime: 125, node_id: "usr:CCP0004" },
+  { user: "CCP0005", count_datetime: 118, node_id: "usr:CCP0005" },
+  { user: "CCP0006", count_datetime: 104, node_id: "usr:CCP0006" },
+  { user: "CCP0007", count_datetime: 97,  node_id: "usr:CCP0007" },
+  { user: "CCP0008", count_datetime: 89,  node_id: "usr:CCP0008" },
+  { user: "CCP0009", count_datetime: 76,  node_id: "usr:CCP0009" },
+  { user: "CCP0010", count_datetime: 61,  node_id: "usr:CCP0010" },
+];
+
+useEffect(() => {
+  const loadTopUsers = async () => {
+    if (USE_LOCAL_TEST_MODE) {
+      setTopUsers(LOCAL_TOP_USERS);
+      return;
+    }
+
+    try {
+      const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/users/top", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch top users: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      setTopUsers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to load top users:", e);
+      setTopUsers([]);
+    }
+  };
+
+  loadTopUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   // Helper to merge new nodes/links into existing graph
   const mergeGraphData = useCallback((oldData: GraphData, newData: GraphData) => {
@@ -133,22 +147,125 @@ export default function ThreatHunt() {
   }, []);
 
   // Fetch graph data for a node
+  // const fetchGraph = useCallback(async (nodeId: string, expand = false) => {
+  //   setLoading(true);
+  //   setError(null);
+
+  //   try {
+  //     let data: any;
+      
+  //     if (USE_LOCAL_TEST_MODE) {
+  //       // Local test mode: use the full graph data
+  //       data = LOCAL_GRAPH_MAP;
+  //       console.log('Using local test data for node:', nodeId);
+  //     } else {
+  //       // Real API call
+  //       const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph" + "?node_id=" + nodeId, {
+  //         method: 'GET',
+  //         headers: { 'Content-Type': 'application/json' }
+  //       });
+
+  //       if (!res.ok) {
+  //         throw new Error(`API error: ${res.status} ${res.statusText}`);
+  //       }
+
+  //       data = await res.json();
+  //     }
+      
+  //     // Preserve raw response for testing/inspection
+  //     setRawResponse(data);
+
+  //     // Normalize response: accept either `links` or `edges` (with src/dst)
+  //     const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
+  //     let allEdges: any[] = [];
+  //     if (Array.isArray(data.links)) allEdges = data.links;
+  //     else if (Array.isArray(data.edges)) allEdges = data.edges;
+
+  //     let relevantNodes: any[];
+  //     let links: any[];
+
+  //     if (expand) {
+  //       // When expanding: show the node and its direct neighbors
+  //       const relevantEdges = allEdges.filter((e: any) => {
+  //         const src = e.src ?? e.source;
+  //         const dst = e.dst ?? e.target;
+  //         return src === nodeId || dst === nodeId;
+  //       });
+
+  //       // Get IDs of nodes connected to the clicked node
+  //       const connectedNodeIds = new Set<string>([nodeId]);
+  //       relevantEdges.forEach((e: any) => {
+  //         const src = e.src ?? e.source;
+  //         const dst = e.dst ?? e.target;
+  //         connectedNodeIds.add(src);
+  //         connectedNodeIds.add(dst);
+  //       });
+
+  //       // Filter nodes to only include the clicked node and its neighbors
+  //       relevantNodes = allNodes.filter((n: any) => connectedNodeIds.has(n.id));
+
+  //       // Convert edges to links format
+  //       links = relevantEdges.map((e: any) => ({
+  //         source: e.src ?? e.source,
+  //         target: e.dst ?? e.target
+  //       }));
+  //     } else {
+  //       // Initial load: show only the single node, no connections
+  //       relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
+  //       links = [];
+  //     }
+
+  //     // Validate normalized data
+  //     if (!Array.isArray(relevantNodes)) {
+  //       throw new Error('Invalid graph data format');
+  //     }
+
+  //     const normalized = {
+  //       nodes: relevantNodes.map((n: any) => ({ 
+  //         id: String(n.id), 
+  //         label: n.label ?? String(n.id),
+  //         type: n.type 
+  //       })),
+  //       links
+  //     };
+
+  //     if (expand) {
+  //       setGraphData(prev => mergeGraphData(prev, normalized));
+  //     } else {
+  //       setGraphData(normalized);
+  //     }
+
+  //     // Don't mark as expanded on initial load, only when actually expanding
+  //     if (expand) {
+  //       setExpandedNodes(prev => new Set(prev).add(nodeId));
+  //     }
+  //   } catch (e) {
+  //     const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
+  //     setError(errorMsg);
+  //     console.error('Graph fetch error:', e);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [mergeGraphData]);
+
   const fetchGraph = useCallback(async (nodeId: string, expand = false) => {
-    setLoading(true);
+    if (expand) {
+      setExpanding(true);
+    } else {
+      setInitialLoading(true);
+    }
     setError(null);
 
     try {
       let data: any;
-      
+
       if (USE_LOCAL_TEST_MODE) {
-        // Local test mode: use the full graph data
         data = LOCAL_GRAPH_MAP;
-        console.log('Using local test data for node:', nodeId);
       } else {
-        // Real API call
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph" + "?node_id=" + nodeId, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
+        const res = await fetch("http://localhost:8000/api/graph", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ node_id: nodeId }),
         });
 
         if (!res.ok) {
@@ -157,195 +274,90 @@ export default function ThreatHunt() {
 
         data = await res.json();
       }
-      
-      // Preserve raw response for testing/inspection
+
       setRawResponse(data);
 
-      // Normalize response: accept either `links` or `edges` (with src/dst)
-      const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
-      let allEdges: any[] = [];
-      if (Array.isArray(data.links)) allEdges = data.links;
-      else if (Array.isArray(data.edges)) allEdges = data.edges;
+      const allNodes: any[] = Array.isArray(data.nodes) ? data.nodes : [];
+      const allEdges: any[] = Array.isArray(data.edges) ? data.edges : [];
 
       let relevantNodes: any[];
-      let links: any[];
+      let links: LinkType[];
 
       if (expand) {
-        // When expanding: show the node and its direct neighbors
-        const relevantEdges = allEdges.filter((e: any) => {
-          const src = e.src ?? e.source;
-          const dst = e.dst ?? e.target;
-          return src === nodeId || dst === nodeId;
-        });
+        const relevantEdges = allEdges.filter((e: any) =>
+          e.source === nodeId || e.target === nodeId
+        );
 
-        // Get IDs of nodes connected to the clicked node
-        const connectedNodeIds = new Set<string>([nodeId]);
+        const connectedIds = new Set<string>([nodeId]);
         relevantEdges.forEach((e: any) => {
-          const src = e.src ?? e.source;
-          const dst = e.dst ?? e.target;
-          connectedNodeIds.add(src);
-          connectedNodeIds.add(dst);
+          connectedIds.add(e.source);
+          connectedIds.add(e.target);
         });
 
-        // Filter nodes to only include the clicked node and its neighbors
-        relevantNodes = allNodes.filter((n: any) => connectedNodeIds.has(n.id));
+        // Nodes that exist in the response
+        const foundNodes = allNodes.filter((n: any) => connectedIds.has(n.id));
+        const foundNodeIds = new Set(foundNodes.map((n: any) => n.id));
 
-        // Convert edges to links format
+        // ✅ Create placeholder nodes for any IDs referenced in edges but missing from nodes array
+        const placeholderNodes = Array.from(connectedIds)
+          .filter(id => !foundNodeIds.has(id))
+          .map(id => ({
+            id,
+            // Derive a readable label: strip prefix like "usr:", "host:", "ip:"
+            label: id.includes(':') ? id.split(':').slice(1).join(':') : id,
+            type: id.includes(':') ? id.split(':')[0].toUpperCase() : 'UNKNOWN',
+          }));
+
+        relevantNodes = [...foundNodes, ...placeholderNodes];
         links = relevantEdges.map((e: any) => ({
-          source: e.src ?? e.source,
-          target: e.dst ?? e.target
+          source: e.source,
+          target: e.target,
         }));
       } else {
-        // Initial load: show only the single node, no connections
         relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
         links = [];
       }
 
-      // Validate normalized data
-      if (!Array.isArray(relevantNodes)) {
-        throw new Error('Invalid graph data format');
-      }
-
-      const normalized = {
-        nodes: relevantNodes.map((n: any) => ({ 
-          id: String(n.id), 
+      const normalized: GraphData = {
+        nodes: relevantNodes.map((n: any) => ({
+          id: String(n.id),
           label: n.label ?? String(n.id),
-          type: n.type 
+          type: n.type,
         })),
-        links
+        links,
       };
 
       if (expand) {
         setGraphData(prev => mergeGraphData(prev, normalized));
+        setExpandedNodes(prev => new Set(prev).add(nodeId));
       } else {
         setGraphData(normalized);
       }
 
-      // Don't mark as expanded on initial load, only when actually expanding
-      if (expand) {
-        setExpandedNodes(prev => new Set(prev).add(nodeId));
-      }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
       setError(errorMsg);
       console.error('Graph fetch error:', e);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setExpanding(false);
     }
   }, [mergeGraphData]);
-
-    const expandGraph = useCallback(async (nodeId: string, expand = false) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      let data: any;
-      
-      if (USE_LOCAL_TEST_MODE) {
-        // Local test mode: use the full graph data
-        data = LOCAL_GRAPH_MAP;
-        console.log('Using local test data for node:', nodeId);
-      } else {
-        // Real API call
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph/expand" + "?node_id=" + nodeId, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status} ${res.statusText}`);
-        }
-
-        data = await res.json();
-      }
-      
-      // Preserve raw response for testing/inspection
-      setRawResponse(data);
-
-      // Normalize response: accept either `links` or `edges` (with src/dst)
-      const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
-      let allEdges: any[] = [];
-      if (Array.isArray(data.links)) allEdges = data.links;
-      else if (Array.isArray(data.edges)) allEdges = data.edges;
-
-      let relevantNodes: any[];
-      let links: any[];
-
-      if (expand) {
-        // When expanding: show the node and its direct neighbors
-        const relevantEdges = allEdges.filter((e: any) => {
-          const src = e.src ?? e.source;
-          const dst = e.dst ?? e.target;
-          return src === nodeId || dst === nodeId;
-        });
-
-        // Get IDs of nodes connected to the clicked node
-        const connectedNodeIds = new Set<string>([nodeId]);
-        relevantEdges.forEach((e: any) => {
-          const src = e.src ?? e.source;
-          const dst = e.dst ?? e.target;
-          connectedNodeIds.add(src);
-          connectedNodeIds.add(dst);
-        });
-
-        // Filter nodes to only include the clicked node and its neighbors
-        relevantNodes = allNodes.filter((n: any) => connectedNodeIds.has(n.id));
-
-        // Convert edges to links format
-        links = relevantEdges.map((e: any) => ({
-          source: e.src ?? e.source,
-          target: e.dst ?? e.target
-        }));
-      } else {
-        // Initial load: show only the single node, no connections
-        relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
-        links = [];
-      }
-
-      // Validate normalized data
-      if (!Array.isArray(relevantNodes)) {
-        throw new Error('Invalid graph data format');
-      }
-
-      const normalized = {
-        nodes: relevantNodes.map((n: any) => ({ 
-          id: String(n.id), 
-          label: n.label ?? String(n.id),
-          type: n.type 
-        })),
-        links
-      };
-
-      if (expand) {
-        setGraphData(prev => mergeGraphData(prev, normalized));
-      } else {
-        setGraphData(normalized);
-      }
-
-      // Don't mark as expanded on initial load, only when actually expanding
-      if (expand) {
-        setExpandedNodes(prev => new Set(prev).add(nodeId));
-      }
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
-      setError(errorMsg);
-      console.error('Graph fetch error:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [mergeGraphData]);
-
-  // Initial load removed — now triggered by user input/button
-
-  // Using hardcoded top user list for now
 
   // Handle node click to expand
   const handleNodeClick = useCallback((node: NodeType) => {
     if (!expandedNodes.has(node.id)) {
-      console.log('Expanding node:', node.id);
-      expandGraph(node.id, true);
+      // Set wait cursor on the graph container
+      if (containerRef.current) {
+        containerRef.current.style.cursor = 'wait';
+      }
+      fetchGraph(node.id, true).finally(() => {
+        if (containerRef.current) {
+          containerRef.current.style.cursor = 'default';
+        }
+      });
     }
-  }, [expandedNodes, expandGraph]);
+  }, [expandedNodes, fetchGraph]);
 
   return (
     <div>
@@ -374,11 +386,11 @@ export default function ThreatHunt() {
                     onClick={() => {
                       setGraphData({ nodes: [], links: [] });
                       setExpandedNodes(new Set());
-                      fetchGraph(u.user);
+                      fetchGraph(u.node_id);
                     }}
                     className="w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
-                    {u.user} {u.risk_score ? `(${u.risk_score})` : null}
+                    {u.user}
                   </button>
                 ))}
               </div>
@@ -394,124 +406,131 @@ export default function ThreatHunt() {
               </div>
             )}
 
-            {/* Loading */}
-            {loading && (
+            {/* Initial Loading — only shown before any graph is rendered */}
+            {initialLoading && (
               <div className="flex items-center justify-center p-8">
                 <div className="text-gray-600 dark:text-gray-400">Loading graph...</div>
               </div>
             )}
 
-            {/* Empty */}
-            {!loading && !error && graphData.nodes.length === 0 && (
+            {/* Empty state */}
+            {!initialLoading && !error && graphData.nodes.length === 0 && (
               <div className="flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
                 No graph data available
               </div>
             )}
 
-            {/* Graph Canvas */}
-            {graphData.nodes.length > 0 && (
-              <div
-                style={{
-                  height: '70vh',
-                  minHeight: 500,
-                  width: '100%',
-                  border: '1px solid #e5e7eb',
+            {/* Graph Canvas — stays mounted, no layout shift */}
+            {/* ✅ expanding spinner overlaid, not replacing the canvas */}
+            <div
+              style={{
+                display: graphData.nodes.length > 0 ? 'block' : 'none',
+                position: 'relative',
+                height: '70vh',
+                minHeight: 500,
+                width: '100%',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                backgroundColor: '#fafafa'
+              }}
+              className="dark:border-gray-700 dark:bg-gray-900/50"
+            >
+              {/* Subtle overlay spinner during expansion — doesn't shift layout */}
+              {expanding && (
+                <div style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  zIndex: 10,
+                  background: 'rgba(255,255,255,0.85)',
                   borderRadius: '8px',
-                  overflow: 'hidden',
-                  backgroundColor: '#fafafa'
-                }}
-                className="dark:border-gray-700 dark:bg-gray-900/50"
-              >
-                <ForceGraph2D
-                  ref={fgRef}
-                  graphData={graphData}
-                  width={canvasSize.width}
-                  height={canvasSize.height}
-                  nodeLabel="label"
-                  nodeRelSize={8}
-                  nodeVal={(node: any) => {
-                    // Make expanded nodes larger
-                    return expandedNodes.has(node.id) ? 12 : 8;
-                  }}
-                  nodeColor={(node: any) => {
-                    // Color coding by node type
-                    const n = node as any;
-                    if (expandedNodes.has(n.id)) return '#3b82f6'; // Blue for expanded
-                    return '#94a3b8'; // Gray for unexpanded
-                  }}
-                  nodeCanvasObject={(node: any, ctx, globalScale) => {
-                    const label = node.label;
-                    const fontSize = 12 / globalScale;
-                    const nodeRadius = (expandedNodes.has(node.id) ? 12 : 8) / globalScale;
-                    
-                    // Draw circular node with smooth scaling
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  color: '#475569',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                }}>
+                  Expanding…
+                </div>
+              )}
+
+              <ForceGraph2D
+                ref={fgRef}
+                graphData={graphData}
+                width={canvasSize.width}
+                height={canvasSize.height}
+                nodeLabel="label"
+                nodeRelSize={8}
+                nodeVal={(node: any) => expandedNodes.has(node.id) ? 12 : 8}
+                nodeColor={(node: any) => expandedNodes.has(node.id) ? '#3b82f6' : '#94a3b8'}
+                nodeCanvasObject={(node: any, ctx, globalScale) => {
+                  const label = node.label;
+                  const fontSize = 12 / globalScale;
+                  const nodeRadius = (expandedNodes.has(node.id) ? 12 : 8) / globalScale;
+
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
+                  ctx.fillStyle = expandedNodes.has(node.id) ? '#3b82f6' : '#94a3b8';
+                  ctx.fill();
+                  ctx.strokeStyle = '#fff';
+                  ctx.lineWidth = 2 / globalScale;
+                  ctx.stroke();
+
+                  ctx.font = `${fontSize}px Sans-Serif`;
+                  const textWidth = ctx.measureText(label).width;
+                  const bckgDimensions = [textWidth + fontSize * 0.4, fontSize + fontSize * 0.4];
+
+                  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                  ctx.fillRect(
+                    node.x - bckgDimensions[0] / 2,
+                    node.y + nodeRadius + 5 / globalScale,
+                    bckgDimensions[0],
+                    bckgDimensions[1]
+                  );
+
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'top';
+                  ctx.fillStyle = expandedNodes.has(node.id) ? '#1e40af' : '#475569';
+                  ctx.fillText(label, node.x, node.y + nodeRadius + 7 / globalScale);
+
+                  if (!expandedNodes.has(node.id)) {
                     ctx.beginPath();
-                    ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = expandedNodes.has(node.id) ? '#3b82f6' : '#94a3b8';
+                    ctx.arc(node.x, node.y, nodeRadius * 0.4, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = '#fff';
                     ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2 / globalScale;
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1.5 / globalScale;
                     ctx.stroke();
 
-                    // Draw label with background
-                    ctx.font = `${fontSize}px Sans-Serif`;
-                    const textWidth = ctx.measureText(label).width;
-                    const bckgDimensions = [textWidth + fontSize * 0.4, fontSize + fontSize * 0.4];
-
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                    ctx.fillRect(
-                      node.x - bckgDimensions[0] / 2,
-                      node.y + nodeRadius + 5 / globalScale,
-                      bckgDimensions[0],
-                      bckgDimensions[1]
-                    );
-
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillStyle = expandedNodes.has(node.id) ? '#1e40af' : '#475569';
-                    ctx.fillText(label, node.x, node.y + nodeRadius + 7 / globalScale);
-                    
-                    // Add expansion indicator for unexpanded nodes
-                    if (!expandedNodes.has(node.id)) {
-                      ctx.beginPath();
-                      ctx.arc(node.x, node.y, nodeRadius * 0.4, 0, 2 * Math.PI, false);
-                      ctx.fillStyle = '#fff';
-                      ctx.fill();
-                      ctx.strokeStyle = '#94a3b8';
-                      ctx.lineWidth = 1.5 / globalScale;
-                      ctx.stroke();
-                      
-                      // Plus sign
-                      ctx.strokeStyle = '#64748b';
-                      ctx.lineWidth = 1.5 / globalScale;
-                      ctx.beginPath();
-                      ctx.moveTo(node.x - nodeRadius * 0.2, node.y);
-                      ctx.lineTo(node.x + nodeRadius * 0.2, node.y);
-                      ctx.moveTo(node.x, node.y - nodeRadius * 0.2);
-                      ctx.lineTo(node.x, node.y + nodeRadius * 0.2);
-                      ctx.stroke();
-                    }
-                  }}
-                  linkDirectionalArrowLength={6}
-                  linkDirectionalArrowRelPos={1}
-                  linkWidth={2}
-                  linkColor={() => '#cbd5e1'}
-                  linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2}
-                  linkDirectionalParticleSpeed={0.004}
-                  onNodeClick={(node) => handleNodeClick(node as NodeType)}
-                  enableNodeDrag={true}
-                  enableZoomInteraction={true}
-                  enablePanInteraction={true}
-                  d3AlphaDecay={0.015}
-                  d3VelocityDecay={0.2}
-                  d3AlphaMin={0.001}
-                  warmupTicks={0}
-                  cooldownTicks={200}
-                  cooldownTime={15000}
-                />
-              </div>
-            )}
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 1.5 / globalScale;
+                    ctx.beginPath();
+                    ctx.moveTo(node.x - nodeRadius * 0.2, node.y);
+                    ctx.lineTo(node.x + nodeRadius * 0.2, node.y);
+                    ctx.moveTo(node.x, node.y - nodeRadius * 0.2);
+                    ctx.lineTo(node.x, node.y + nodeRadius * 0.2);
+                    ctx.stroke();
+                  }
+                }}
+                linkDirectionalArrowLength={6}
+                linkDirectionalArrowRelPos={1}
+                linkWidth={2}
+                linkColor={() => '#cbd5e1'}
+                linkDirectionalParticles={2}
+                linkDirectionalParticleWidth={2}
+                linkDirectionalParticleSpeed={0.004}
+                onNodeClick={(node) => handleNodeClick(node as NodeType)}
+                enableNodeDrag={true}
+                enableZoomInteraction={true}
+                enablePanInteraction={true}
+                d3AlphaDecay={0.015}
+                d3VelocityDecay={0.2}
+                d3AlphaMin={0.001}
+                warmupTicks={0}
+                cooldownTicks={200}
+                cooldownTime={15000}
+              />
+            </div>
           
             {/* Debug Info (remove in production) */}
             {process.env.NODE_ENV === 'development' && (
