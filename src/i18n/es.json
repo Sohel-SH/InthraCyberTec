@@ -24,7 +24,7 @@
   "nav.threatHunt": "Búsqueda de amenazas",
   "nav.llm": "LLM",
   "nav.news": "Noticias",
-  "nav.query": "Consulta",
+  "nav.query": "Deep Dive Data",
   "header.searchPlaceholder": "Buscar o escribir comando...",
   "user.editProfile": "Editar perfil",
   "user.accountSettings": "Configuración de la cuenta",
@@ -61,12 +61,11 @@
   "dashboard.change.upYesterday": "Subió desde ayer",
   "dashboard.change.upPastWeek": "Subió desde la semana pasada",
   "dashboard.change.downYesterday": "Bajó desde ayer",
-  "query.title": "Consulta",
+  "query.title": "Deep Dive Data",
   "query.inputLabel": "Ingresa tu consulta",
   "query.inputPlaceholder": "Escribe tu consulta aquí...",
   "query.runButton": "Ejecutar consulta",
   "query.clearButton": "Limpiar",
   "query.running": "Ejecutando...",
   "query.result": "Resultado"
-}
 }

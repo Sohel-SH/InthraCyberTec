@@ -35,22 +35,23 @@ export function DashboardCardView({
       {...attributes}
       {...listeners}
       className={`
-        relative
-        rounded-2xl
-        bg-white
-        p-3
-        shadow-sm
-        cursor-grab
-        hover:shadow-md
-        transition
-        ${isDragging ? "opacity-30" : ""}
-        ${isOverlay ? "shadow-xl scale-105" : ""}
-      `}
+          relative
+          rounded-2xl
+          bg-white
+          dark:bg-white/[0.03]
+          p-3
+          shadow-sm
+          cursor-grab
+          hover:shadow-md
+          transition
+          ${isDragging ? "opacity-30" : ""}
+          ${isOverlay ? "shadow-xl scale-105" : ""}
+        `}
     >
-      <p className="text-sm text-gray-500 font-medium">{card.title}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{card.title}</p>
 
       <div className="flex justify-between">
-        <h3 className="mt-1 text-3xl font-bold text-gray-900">
+        <h3 className="mt-1 text-3xl font-bold text-gray-900 dark:text-white/90">
           {card.value}
         </h3>
         <div
@@ -63,18 +64,18 @@ export function DashboardCardView({
       <div className="mt-4">
         <p
           className={`flex items-center text-sm font-medium ${
-            isUp ? "text-green-600" : "text-red-600"
+            isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
           }`}
         >
           {isUp ? <UpwordIcon /> : <DownwardIcon />}
           {card.change}%
-          <span className="ml-1 text-gray-500">{card.changeText}</span>
+          <span className="ml-1 text-gray-500 dark:text-gray-400">{card.changeText}</span>
         </p>
       </div>
 
       {/* ⭐ SHOW EXTRA CONTENT WHEN EXPANDED */}
       {isExpanded && (
-        <div className="mt-4 h-32 rounded bg-gray-100 flex items-center justify-center">
+        <div className="mt-4 h-32 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
           Chart / extra content
         </div>
       )}
@@ -86,7 +87,7 @@ export function DashboardCardView({
             e.stopPropagation();
             onToggleExpand();
           }}
-          className="absolute bottom-2 right-2 rounded bg-gray-100 p-1 hover:bg-gray-200"
+          className="absolute bottom-2 right-2 rounded bg-gray-100 dark:bg-gray-700 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 transition-colors"
         >
           {isExpanded ? <AiFillCaretUp className="h-3 w-3" /> : <AiFillCaretDown className="h-3 w-3" />}
         </button>

@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { API_CONFIG } from "@/config/api";
 import T from "@/components/i18n/T";
+import { useTheme } from "@/context/ThemeContext";
 
 // Dynamically import ForceGraph2D to avoid SSR issues
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
@@ -26,7 +27,10 @@ type GraphData = {
 
 
 export default function ThreatHunt() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +65,7 @@ export default function ThreatHunt() {
     }
   }, [graphData]);
 
-  const USE_LOCAL_TEST_MODE = false;
+  const USE_LOCAL_TEST_MODE = true;
 
   const LOCAL_GRAPH_MAP = {
     nodes: [
@@ -128,10 +132,10 @@ useEffect(() => {
         nodeMap.set(n.id, n);
       }
     });
-    
+
     const linkSet = new Set(oldData.links.map(l => `${l.source}->${l.target}`));
     const newLinks: LinkType[] = [];
-    
+
     newData.links.forEach(l => {
       const key = `${l.source}->${l.target}`;
       if (!linkSet.has(key)) {
@@ -139,7 +143,7 @@ useEffect(() => {
         newLinks.push(l);
       }
     });
-    
+
     return {
       nodes: Array.from(nodeMap.values()),
       links: [...oldData.links, ...newLinks]
@@ -153,7 +157,7 @@ useEffect(() => {
 
   //   try {
   //     let data: any;
-      
+
   //     if (USE_LOCAL_TEST_MODE) {
   //       // Local test mode: use the full graph data
   //       data = LOCAL_GRAPH_MAP;
@@ -171,7 +175,7 @@ useEffect(() => {
 
   //       data = await res.json();
   //     }
-      
+
   //     // Preserve raw response for testing/inspection
   //     setRawResponse(data);
 
@@ -221,10 +225,10 @@ useEffect(() => {
   //     }
 
   //     const normalized = {
-  //       nodes: relevantNodes.map((n: any) => ({ 
-  //         id: String(n.id), 
+  //       nodes: relevantNodes.map((n: any) => ({
+  //         id: String(n.id),
   //         label: n.label ?? String(n.id),
-  //         type: n.type 
+  //         type: n.type
   //       })),
   //       links
   //     };
@@ -262,7 +266,7 @@ useEffect(() => {
       if (USE_LOCAL_TEST_MODE) {
         data = LOCAL_GRAPH_MAP;
       } else {
-        const res = await fetch("http://localhost:8000/api/graph", {
+        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ node_id: nodeId }),
@@ -344,6 +348,8 @@ useEffect(() => {
     }
   }, [mergeGraphData]);
 
+
+
   // Handle node click to expand
   const handleNodeClick = useCallback((node: NodeType) => {
     if (!expandedNodes.has(node.id)) {
@@ -362,37 +368,72 @@ useEffect(() => {
   return (
     <div>
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-        <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
+        <h3 className="mb-5 text-2xl font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
           <T k="threatHunt.title" />
         </h3>
-        
+
         <div className="flex gap-6">
           {/* Sidebar List */}
-          <div className="w-1/4 p-4 bg-gray-50 dark:bg-gray-900 rounded" 
+          <div
+            className="w-1/4 p-4 rounded"
             style={{
-              border: '1px solid #e5e7eb',
+              border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
               borderRadius: '8px',
-              backgroundColor: '#fafafa'
+              backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
             }}
           >
-            <h4 className="mb-3 font-semibold">Top 10 High Risk</h4>
+            <h4 className="mb-3 font-semibold text-gray-800 dark:text-white/90">Top 10 High Risk</h4>
             {topUsers.length === 0 ? (
-              <div className="text-sm text-gray-500">No users</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">No users</div>
             ) : (
-              <div className="space-y-2">
-                {topUsers.map(u => (
-                  <button
-                    key={u.user}
-                    onClick={() => {
-                      setGraphData({ nodes: [], links: [] });
-                      setExpandedNodes(new Set());
-                      fetchGraph(u.node_id);
-                    }}
-                    className="w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    {u.user}
-                  </button>
-                ))}
+              <div className="space-y-1">
+                {topUsers.map(u => {
+                  const isSelected = selectedUserId === u.node_id;
+                  return (
+                    <button
+                      key={u.user}
+                      onClick={() => {
+                        setSelectedUserId(u.node_id);
+                        setGraphData({ nodes: [], links: [] });
+                        setExpandedNodes(new Set());
+                        fetchGraph(u.node_id);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                        isSelected
+                          ? 'text-white'
+                          : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                      style={
+                        isSelected
+                          ? {
+                              background: 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)',
+                              boxShadow: '0px 4px 10px 0px #00000022',
+                            }
+                          : {
+                              background: 'transparent',
+                            }
+                      }
+                      onMouseEnter={e => {
+                        if (!isSelected) {
+                          (e.currentTarget as HTMLButtonElement).style.background =
+                            'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)';
+                          (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                            '0px 4px 10px 0px #00000022';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isSelected) {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                          (e.currentTarget as HTMLButtonElement).style.color = '';
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
+                        }
+                      }}
+                    >
+                      {u.user}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -406,36 +447,32 @@ useEffect(() => {
               </div>
             )}
 
-            {/* Initial Loading — only shown before any graph is rendered */}
-            {initialLoading && (
-              <div className="flex items-center justify-center p-8">
-                <div className="text-gray-600 dark:text-gray-400">Loading graph...</div>
-              </div>
-            )}
 
-            {/* Empty state */}
-            {!initialLoading && !error && graphData.nodes.length === 0 && (
-              <div className="flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
-                No graph data available
-              </div>
-            )}
 
-            {/* Graph Canvas — stays mounted, no layout shift */}
-            {/* ✅ expanding spinner overlaid, not replacing the canvas */}
+            {/* Graph Canvas — always visible */}
             <div
               style={{
-                display: graphData.nodes.length > 0 ? 'block' : 'none',
                 position: 'relative',
                 height: '70vh',
                 minHeight: 500,
                 width: '100%',
-                border: '1px solid #e5e7eb',
+                border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
                 borderRadius: '8px',
                 overflow: 'hidden',
-                backgroundColor: '#fafafa'
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
               }}
-              className="dark:border-gray-700 dark:bg-gray-900/50"
             >
+              {/* Empty / loading placeholder shown inside canvas when no data yet */}
+              {graphData.nodes.length === 0 && !initialLoading && (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm pointer-events-none">
+                  {selectedUserId ? 'No graph data available' : 'Select a user to view the graph'}
+                </div>
+              )}
+              {initialLoading && (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm pointer-events-none">
+                  Loading graph…
+                </div>
+              )}
               {/* Subtle overlay spinner during expansion — doesn't shift layout */}
               {expanding && (
                 <div style={{
@@ -443,11 +480,11 @@ useEffect(() => {
                   top: 12,
                   right: 12,
                   zIndex: 10,
-                  background: 'rgba(255,255,255,0.85)',
+                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
                   borderRadius: '8px',
                   padding: '4px 10px',
                   fontSize: '12px',
-                  color: '#475569',
+                  color: isDark ? '#94a3b8' : '#475569',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                 }}>
                   Expanding…
@@ -531,7 +568,7 @@ useEffect(() => {
                 cooldownTime={15000}
               />
             </div>
-          
+
             {/* Debug Info (remove in production) */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 rounded bg-gray-100 p-3 text-xs dark:bg-gray-800">

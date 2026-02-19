@@ -20,6 +20,9 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 // import SidebarWidget from "./SidebarWidget";
+import { FiAlertOctagon, FiSettings } from 'react-icons/fi'
+import { BiNews, BiData } from 'react-icons/bi'
+import { GiMagnifyingGlass } from 'react-icons/gi'
 
 type NavItem = {
   name: string;
@@ -35,12 +38,12 @@ const navItems: NavItem[] = [
     path: '/'
   },
   {
-    icon: <CalenderIcon />,
+    icon: <FiAlertOctagon className="w-6 h-6" />,
     name: "Alerts",
     path: "/alerts",
   },
   {
-    icon: <UserCircleIcon />,
+    icon: <GiMagnifyingGlass className="w-6 h-6" />,
     name: "Threat Hunt",
     path: "/threat-hunt",
   },
@@ -52,56 +55,32 @@ const navItems: NavItem[] = [
   },
   {
     name: "News",
-    icon: <TableIcon />,
+    icon: <BiNews className="w-6 h-6" />,
     path: "/news"
   },
   {
     name: "Query",
-    icon: <DocsIcon />,
+    icon: <BiData className="w-6 h-6" />,
     path: "/query"
   },
   {
     name: "Configuration Settings",
-    icon: <PageIcon />,
+    icon: <FiSettings className="w-6 h-6" />,
     path: "/configuration-settings",
   },
 ];
 
-// const othersItems: NavItem[] = [
-// {
-//   icon: <PieChartIcon />,
-//   name: "Charts",
-//   subItems: [
-//     // { name: "Line Chart", path: "/line-chart", pro: false },
-//     { name: "Bar Chart", path: "/bar-chart", pro: false },
-//   ],
-// },
-// {
-//   icon: <BoxCubeIcon />,
-//   name: "UI Elements",
-//   subItems: [
-//     { name: "Alerts", path: "/alerts", pro: false },
-//     { name: "Avatar", path: "/avatars", pro: false },
-//     { name: "Badge", path: "/badge", pro: false },
-//     { name: "Buttons", path: "/buttons", pro: false },
-//     { name: "Images", path: "/images", pro: false },
-//     { name: "Videos", path: "/videos", pro: false },
-//   ],
-// },
-// {
-//   icon: <PlugInIcon />,
-//   name: "Authentication",
-//   subItems: [
-//     { name: "Sign In", path: "/signin", pro: false },
-//     { name: "Sign Up", path: "/signup", pro: false },
-//   ],
-// },
-// ];
-
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
   const { t } = useLanguage();
+  const handleToggle = () => {
+    if (window.innerWidth >= 1024) {
+      toggleSidebar();
+    } else {
+      toggleMobileSidebar();
+    }
+  };
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -154,7 +133,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
-                className={`menu-item group sidebar-hover-pill ${isActive(nav.path) ? "text-white rounded-xl" : "menu-item-inactive text-white/80"
+                className={`menu-item group sidebar-hover-pill ${isActive(nav.path) ? "text-white rounded-xl" : "menu-item-inactive"
                   }`}
                 style={
                   isActive(nav.path)
@@ -254,32 +233,6 @@ const AppSidebar: React.FC = () => {
   // const isActive = (path: string) => path === pathname;
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
-  // useEffect(() => {
-  //   // Check if the current path matches any submenu item
-  //   let submenuMatched = false;
-  //   ["main", "others"].forEach((menuType) => {
-  //     const items = menuType === "main" ? navItems : othersItems;
-  //     items.forEach((nav, index) => {
-  //       if (nav.subItems) {
-  //         nav.subItems.forEach((subItem) => {
-  //           if (isActive(subItem.path)) {
-  //             setOpenSubmenu({
-  //               type: menuType as "main" | "others",
-  //               index,
-  //             });
-  //             submenuMatched = true;
-  //           }
-  //         });
-  //       }
-  //     });
-  //   });
-
-  //   // If no submenu item matches, close the open submenu
-  //   if (!submenuMatched) {
-  //     setOpenSubmenu(null);
-  //   }
-  // }, [pathname,isActive]);
-
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
@@ -308,7 +261,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-[#0E1011] dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50
         ${isExpanded || isMobileOpen
           ? "w-[290px]"
           : isHovered
@@ -317,74 +270,90 @@ const AppSidebar: React.FC = () => {
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      // onMouseEnter={() => !isExpanded && setIsHovered(true)}
+      // onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-center"
-          }`}
+        className={`${!isExpanded && !isHovered ? "py-[24.5px]" : "py-[24.5px]"} flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-center"}`}
       >
-        <Link href="/">
+        {/* <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              {/* <Image
-                className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              /> */}
-              {/* <Image
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              /> */}
-              <div className="dark:hidden text-center font-semibold text-white  text-3xlsm:text-4xl md:text-5xl
-  lg:text-6xl xl:text-[67px]">INTHRA</div>
-              <div className="hidden dark:block text-center font-semibold text-white   text-3xl sm:text-4xl md:text-5xl
-  lg:text-6xl xl:text-[67px]">INTHRA</div>
+              <div className="dark:hidden text-center font-semibold text-[#233EFF] text-3xlsm:text-4xl md:text-5xl
+  lg:text-6xl xl:text-[20px]">INTHRA</div>
+              <div className="hidden dark:block text-center font-semibold text-[#233EFF] text-3xl sm:text-4xl md:text-5xl
+  lg:text-6xl xl:text-[20px]">INTHRA</div>
             </>
           ) : (
-            // <Image
-            //   src="/images/logo/logo-icon.svg"
-            //   alt="Logo"
-            //   width={32}
-            //   height={32}
-            // />
-            <div className="dark:hidden text-center text-white font-semibold text-xl sm:text-xl md:text-xl
+            <div className="dark:hidden text-center text-[#233EFF] font-semibold text-xl sm:text-xl md:text-xl
   lg:text-xl xl:text-[20px]">INTHRA</div>
           )}
+        </Link> */}
+        <Link href="/">
+          <div
+            className={`
+              text-[#233EFF] font-semibold whitespace-nowrap origin-left
+              transition-all duration-300 ease-in-out
+              ${isExpanded || isHovered || isMobileOpen
+                ? "scale-350 opacity-100 tracking-normal"
+                : "scale-120 opacity-100 tracking-tight"}
+            `}
+            style={{
+              transformOrigin: "center",
+            }}
+          >
+            INTHRA
+          </div>
         </Link>
       </div>
-      <div className="mx-4 mb-6 h-px bg-white/10" />
+      <div className="mx-4 mb-6 h-px bg-gray-200 dark:bg-white/10" />
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              {renderMenuItems(navItems, "main")}
-            </div>
-
-            <div className="">
-              {/* <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
+              <button
+                className="items-center justify-center w-10 h-10 text-gray-500  rounded-lg z-99999 border-0 outline-none lg:flex dark:text-gray-400 lg:h-11 lg:w-11 "
+                onClick={handleToggle}
+                aria-label="Toggle Sidebar"
               >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
+                {isMobileOpen ? (
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M6.21967 7.28131C5.92678 6.98841 5.92678 6.51354 6.21967 6.22065C6.51256 5.92775 6.98744 5.92775 7.28033 6.22065L11.999 10.9393L16.7176 6.22078C17.0105 5.92789 17.4854 5.92788 17.7782 6.22078C18.0711 6.51367 18.0711 6.98855 17.7782 7.28144L13.0597 12L17.7782 16.7186C18.0711 17.0115 18.0711 17.4863 17.7782 17.7792C17.4854 18.0721 17.0105 18.0721 16.7176 17.7792L11.999 13.0607L7.28033 17.7794C6.98744 18.0722 6.51256 18.0722 6.21967 17.7794C5.92678 17.4865 5.92678 17.0116 6.21967 16.7187L10.9384 12L6.21967 7.28131Z"
+                      fill="currentColor"
+                    />
+                  </svg>
                 ) : (
-                  <HorizontaLDots />
+                  <svg
+                    width="16"
+                    height="12"
+                    viewBox="0 0 16 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M0.583252 1C0.583252 0.585788 0.919038 0.25 1.33325 0.25H14.6666C15.0808 0.25 15.4166 0.585786 15.4166 1C15.4166 1.41421 15.0808 1.75 14.6666 1.75L1.33325 1.75C0.919038 1.75 0.583252 1.41422 0.583252 1ZM0.583252 11C0.583252 10.5858 0.919038 10.25 1.33325 10.25L14.6666 10.25C15.0808 10.25 15.4166 10.5858 15.4166 11C15.4166 11.4142 15.0808 11.75 14.6666 11.75L1.33325 11.75C0.919038 11.75 0.583252 11.4142 0.583252 11ZM1.33325 5.25C0.919038 5.25 0.583252 5.58579 0.583252 6C0.583252 6.41421 0.919038 6.75 1.33325 6.75L7.99992 6.75C8.41413 6.75 8.74992 6.41421 8.74992 6C8.74992 5.58579 8.41413 5.25 7.99992 5.25L1.33325 5.25Z"
+                      fill="currentColor"
+                    />
+                  </svg>
                 )}
-              </h2> */}
-              {/* {renderMenuItems(othersItems, "others")} */}
+              </button>
+            </div>
+            <div>
+              {renderMenuItems(navItems, "main")}
             </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

@@ -1,7 +1,7 @@
  "use client";
 import React, { useState } from "react";
 import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
- 
+
  export default function AlertsClient() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -22,17 +22,17 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
       "Malesuada tellus tincidunt fringilla enim, id mauris. Id etiam nibh suscipit aliquam dolor.",
     severity: severities[i % severities.length],
   }));
- 
+
    const openPanel = (idx: number) => {
      setSelectedIndex(idx);
      setIsPanelOpen(true);
    };
- 
+
    const closePanel = () => {
      setIsPanelOpen(false);
      setSelectedIndex(null);
    };
- 
+
   return (
     <>
       <div className="max-w-[560px]">
@@ -40,7 +40,7 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
           <button
             onClick={() => setFilter("all")}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              filter === "all" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"
+              filter === "all" ? "bg-indigo-600 text-white" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
             }`}
           >
             All
@@ -48,7 +48,7 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
           <button
             onClick={() => setFilter("low")}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              filter === "low" ? "bg-green-100 text-green-800" : "text-gray-600 hover:bg-gray-100"
+              filter === "low" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
             }`}
           >
             Low
@@ -56,7 +56,7 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
           <button
             onClick={() => setFilter("mid")}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              filter === "mid" ? "bg-yellow-100 text-yellow-800" : "text-gray-600 hover:bg-gray-100"
+              filter === "mid" ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
             }`}
           >
             Mid
@@ -64,7 +64,7 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
           <button
             onClick={() => setFilter("high")}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              filter === "high" ? "bg-red-100 text-red-800" : "text-gray-600 hover:bg-gray-100"
+              filter === "high" ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
             }`}
           >
             High
@@ -78,15 +78,15 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
               <button
                 key={idx}
                 onClick={() => openPanel(idx)}
-                className="w-full text-left bg-white rounded-2xl p-4 lg:p-5 transition flex items-center gap-4"
+                className="w-full text-left bg-white dark:bg-white/[0.03] rounded-2xl p-4 lg:p-5 transition flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                 style={{ boxShadow: "20px 20px 20px 0px #00000014" }}
               >
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-warning-50">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-warning-50 dark:bg-warning-500/10">
                   <AlertIcon className="text-warning-500" />
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{a.title}</p>
-                  <p className="mt-1 text-gray-500 text-sm">{a.desc}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white/90">{a.title}</p>
+                  <p className="mt-1 text-gray-500 dark:text-gray-400 text-sm">{a.desc}</p>
                 </div>
                 <div className="ml-2 flex items-center gap-2">
                   <span
@@ -95,15 +95,15 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
                     }`}
                     aria-hidden
                   />
-                  <span className="text-xs text-gray-500 capitalize">{a.severity}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{a.severity}</span>
                 </div>
               </button>
             ))}
         </div>
       </div>
- 
+
       <div
-        className={`fixed top-25 right-0 h-[calc(100vh-6rem)] w-full max-w-[360px] lg:max-w-[420px] bg-white border-l border-gray-200 shadow-xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-25 right-0 h-[calc(100vh-6rem)] w-full max-w-[360px] lg:max-w-[420px] bg-white dark:bg-white/[0.03] border-l border-gray-200 dark:border-gray-700 shadow-xl transition-transform duration-300 ease-in-out ${
           isPanelOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"
         }`}
         aria-hidden={isPanelOpen ? "false" : "true"}
@@ -113,14 +113,14 @@ import { AlertIcon, CheckCircleIcon, CloseLineIcon } from "@/icons";
            <button
              aria-label="Close"
              onClick={closePanel}
-             className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+             className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
            >
              <CloseLineIcon />
            </button>
            <div className="space-y-4 mt-2">
              {alerts.slice(0, 5).map((a, i) => (
-               <div key={i} className="pb-3 border-b border-gray-200 last:border-b-0">
-                 <p className="text-sm text-gray-900">
+               <div key={i} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                 <p className="text-sm text-gray-900 dark:text-white/90">
                    {i + 1}. {a.title}
                  </p>
                </div>

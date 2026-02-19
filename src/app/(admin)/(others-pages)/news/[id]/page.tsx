@@ -52,7 +52,7 @@ export default async function NewsDetail({ params }: Props) {
       </div>
 
       {/* Article Content */}
-      <div className="prose max-w-none dark:prose-invert">
+      <div className="prose max-w-none dark:prose-invert dark:text-white/90">
         <p>{article.content}</p>
       </div>
     </div>

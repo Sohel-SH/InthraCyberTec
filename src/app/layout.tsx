@@ -31,6 +31,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={vendSans.variable}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function() {
+  try {
+    var theme = localStorage.getItem('theme');
+    if (
+      theme === 'dark' ||
+      ((!theme || theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+})();`,
+          }}
+        />
+      </head>
       <body className={`font-sans dark:bg-gray-900`}>
         <ThemeProvider>
           <LanguageProvider>

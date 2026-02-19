@@ -1,11 +1,16 @@
 // components/LineChart.tsx
 "use client"
 
+import { useTheme } from "@/context/ThemeContext";
+
 type Props = {
   data: number[];
 };
 
 export default function LineChart({ data }: Props) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const max = Math.max(...data);
 
   const points = data
@@ -15,6 +20,8 @@ export default function LineChart({ data }: Props) {
       return `${x},${y}`;
     })
     .join(" ");
+
+  const gridColor = isDark ? "#374151" : "#E5E7EB";
 
   return (
     <svg viewBox="0 0 100 100" className="h-40 w-full">
@@ -26,7 +33,7 @@ export default function LineChart({ data }: Props) {
           y1={y}
           x2="100"
           y2={y}
-          stroke="#E5E7EB"
+          stroke={gridColor}
           strokeWidth="0.5"
         />
       ))}

@@ -69,8 +69,8 @@ export default function DashboardClient() {
     : null;
 
   return (
-    <div className="p-6">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">Dashboard</h1>
+    <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
+      <h1 className="mb-6 text-2xl font-semibold text-gray-900 dark:text-white/90">Dashboard</h1>
 
       <DndContext
         sensors={sensors}

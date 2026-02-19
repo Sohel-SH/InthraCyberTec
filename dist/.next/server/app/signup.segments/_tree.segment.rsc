@@ -1,4 +1,4 @@
-:HL["/_next/static/chunks/c807f3f109946a60.css","style"]
+:HL["/_next/static/chunks/05e1f60ddbded27e.css","style"]
 :HL["/_next/static/chunks/1071a16b6feddfc5.css","style"]
 :HL["/_next/static/media/VendSans_Bold-s.p.391b59b0.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/VendSans_BoldItalic-s.p.2f9ab179.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
@@ -10,4 +10,4 @@
 :HL["/_next/static/media/VendSans_Regular-s.p.a317a834.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/VendSans_SemiBold-s.p.a634c903.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/VendSans_SemiBoldItalic-s.p.964b3f14.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
-0:{"buildId":"zI9ROpZXX7kvO4-P5Lg4s","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"(full-width-pages)","paramType":null,"paramKey":"(full-width-pages)","hasRuntimePrefetch":false,"slots":{"children":{"name":"(auth)","paramType":null,"paramKey":"(auth)","hasRuntimePrefetch":false,"slots":{"children":{"name":"signup","paramType":null,"paramKey":"signup","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+0:{"buildId":"yVSHr8dT4QKTbpqUo0_-J","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"(full-width-pages)","paramType":null,"paramKey":"(full-width-pages)","hasRuntimePrefetch":false,"slots":{"children":{"name":"(auth)","paramType":null,"paramKey":"(auth)","hasRuntimePrefetch":false,"slots":{"children":{"name":"signup","paramType":null,"paramKey":"signup","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
