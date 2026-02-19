@@ -11,6 +11,7 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false 
 type NodeType = {
   id: string;
   label: string;
+  type?: string;
   x?: number;
   y?: number;
 };
@@ -24,6 +25,159 @@ type GraphData = {
   nodes: NodeType[];
   links: LinkType[];
 };
+
+// ─── Node type config ────────────────────────────────────────────────────────
+const NODE_TYPE_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
+  USER:     { color: '#6366f1', bg: '#eef2ff', border: '#818cf8' },
+  HOSTNAME: { color: '#0ea5e9', bg: '#e0f2fe', border: '#38bdf8' },
+  IP:       { color: '#10b981', bg: '#d1fae5', border: '#34d399' },
+  FIREWALL: { color: '#f59e0b', bg: '#fef3c7', border: '#fbbf24' },
+  EMAIL:    { color: '#ec4899', bg: '#fce7f3', border: '#f472b6' },
+  WEB_URL:  { color: '#8b5cf6', bg: '#ede9fe', border: '#a78bfa' },
+  UNKNOWN:  { color: '#94a3b8', bg: '#f1f5f9', border: '#cbd5e1' },
+};
+
+function getTypeConfig(type?: string) {
+  if (!type) return NODE_TYPE_CONFIG.UNKNOWN;
+  const key = type.toUpperCase().replace(/[\s-]/g, '_');
+  return NODE_TYPE_CONFIG[key] ?? NODE_TYPE_CONFIG.UNKNOWN;
+}
+
+/**
+ * Draw a type-specific icon inside the node circle using canvas primitives.
+ * All coordinates are relative to (cx, cy) — the node center.
+ */
+function drawNodeIcon(ctx: CanvasRenderingContext2D, type: string | undefined, cx: number, cy: number, r: number) {
+  const t = (type ?? '').toUpperCase().replace(/[\s-]/g, '_');
+  const s = r * 0.55; // icon scale factor
+  ctx.lineWidth = r * 0.13;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  switch (t) {
+    case 'USER': {
+      // Head circle
+      ctx.beginPath();
+      ctx.arc(cx, cy - s * 0.35, s * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+      // Body arc
+      ctx.beginPath();
+      ctx.arc(cx, cy + s * 0.65, s * 0.65, Math.PI, 0, false);
+      ctx.fill();
+      break;
+    }
+    case 'HOSTNAME': {
+      // Monitor rectangle
+      const w = s * 1.1, h = s * 0.8;
+      ctx.beginPath();
+      ctx.roundRect(cx - w / 2, cy - h / 2 - s * 0.1, w, h, r * 0.08);
+      ctx.fill();
+      // Stand
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + h / 2 - s * 0.1);
+      ctx.lineTo(cx, cy + h / 2 + s * 0.25);
+      ctx.moveTo(cx - s * 0.35, cy + h / 2 + s * 0.25);
+      ctx.lineTo(cx + s * 0.35, cy + h / 2 + s * 0.25);
+      ctx.stroke();
+      break;
+    }
+    case 'IP': {
+      // Network node — circle with 4 radiating dots
+      ctx.beginPath();
+      ctx.arc(cx, cy, s * 0.32, 0, Math.PI * 2);
+      ctx.fill();
+      const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+      dirs.forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.arc(cx + dx * s * 0.75, cy + dy * s * 0.75, s * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx + dx * s * 0.32, cy + dy * s * 0.32);
+        ctx.lineTo(cx + dx * s * 0.57, cy + dy * s * 0.57);
+        ctx.stroke();
+      });
+      break;
+    }
+    case 'FIREWALL': {
+      // Shield shape
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - s * 0.85);
+      ctx.lineTo(cx + s * 0.65, cy - s * 0.45);
+      ctx.lineTo(cx + s * 0.65, cy + s * 0.1);
+      ctx.quadraticCurveTo(cx + s * 0.65, cy + s * 0.75, cx, cy + s * 0.95);
+      ctx.quadraticCurveTo(cx - s * 0.65, cy + s * 0.75, cx - s * 0.65, cy + s * 0.1);
+      ctx.lineTo(cx - s * 0.65, cy - s * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      // Lock bar inside shield — draw in white/light
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(cx, cy - s * 0.05, s * 0.22, Math.PI, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.roundRect(cx - s * 0.28, cy - s * 0.08, s * 0.56, s * 0.45, r * 0.07);
+      ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'EMAIL': {
+      // Envelope
+      const ew = s * 1.1, eh = s * 0.75;
+      const ex = cx - ew / 2, ey = cy - eh / 2;
+      ctx.beginPath();
+      ctx.roundRect(ex, ey, ew, eh, r * 0.08);
+      ctx.fill();
+      // Flap V
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.0)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = r * 0.12;
+      ctx.beginPath();
+      ctx.moveTo(ex + 2, ey + 2);
+      ctx.lineTo(cx, ey + eh * 0.55);
+      ctx.lineTo(ex + ew - 2, ey + 2);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'WEB_URL': {
+      // Globe — circle with latitude/longitude lines
+      ctx.beginPath();
+      ctx.arc(cx, cy, s * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = r * 0.1;
+      // Horizontal line
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.7, cy);
+      ctx.lineTo(cx + s * 0.7, cy);
+      ctx.stroke();
+      // Vertical ellipse
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, s * 0.3, s * 0.7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, s * 0.7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    default: {
+      // Generic: question mark
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = `bold ${s * 1.1}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', cx, cy + s * 0.05);
+      ctx.restore();
+      break;
+    }
+  }
+}
 
 
 export default function ThreatHunt() {
@@ -60,7 +214,6 @@ export default function ThreatHunt() {
   // Reheat simulation smoothly when new nodes are added
   useEffect(() => {
     if (fgRef.current && graphData.nodes.length > 0) {
-      // Restart the force simulation with smooth animation
       fgRef.current.d3ReheatSimulation();
     }
   }, [graphData]);
@@ -83,186 +236,60 @@ export default function ThreatHunt() {
   };
 
   const LOCAL_TOP_USERS = [
-  { user: "CCP0001", count_datetime: 158, node_id: "usr:CCP0001" },
-  { user: "CCP0002", count_datetime: 136, node_id: "usr:CCP0002" },
-  { user: "CCP0003", count_datetime: 131, node_id: "usr:CCP0003" },
-  { user: "CCP0004", count_datetime: 125, node_id: "usr:CCP0004" },
-  { user: "CCP0005", count_datetime: 118, node_id: "usr:CCP0005" },
-  { user: "CCP0006", count_datetime: 104, node_id: "usr:CCP0006" },
-  { user: "CCP0007", count_datetime: 97,  node_id: "usr:CCP0007" },
-  { user: "CCP0008", count_datetime: 89,  node_id: "usr:CCP0008" },
-  { user: "CCP0009", count_datetime: 76,  node_id: "usr:CCP0009" },
-  { user: "CCP0010", count_datetime: 61,  node_id: "usr:CCP0010" },
-];
+    { user: "CCP0001", count_datetime: 158, node_id: "usr:CCP0001" },
+    { user: "CCP0002", count_datetime: 136, node_id: "usr:CCP0002" },
+    { user: "CCP0003", count_datetime: 131, node_id: "usr:CCP0003" },
+    { user: "CCP0004", count_datetime: 125, node_id: "usr:CCP0004" },
+    { user: "CCP0005", count_datetime: 118, node_id: "usr:CCP0005" },
+    { user: "CCP0006", count_datetime: 104, node_id: "usr:CCP0006" },
+    { user: "CCP0007", count_datetime: 97,  node_id: "usr:CCP0007" },
+    { user: "CCP0008", count_datetime: 89,  node_id: "usr:CCP0008" },
+    { user: "CCP0009", count_datetime: 76,  node_id: "usr:CCP0009" },
+    { user: "CCP0010", count_datetime: 61,  node_id: "usr:CCP0010" },
+  ];
 
-useEffect(() => {
-  const loadTopUsers = async () => {
-    if (USE_LOCAL_TEST_MODE) {
-      setTopUsers(LOCAL_TOP_USERS);
-      return;
-    }
-
-    try {
-      const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/users/top", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch top users: ${res.status} ${res.statusText}`);
+  useEffect(() => {
+    const loadTopUsers = async () => {
+      if (USE_LOCAL_TEST_MODE) {
+        setTopUsers(LOCAL_TOP_USERS);
+        return;
       }
-
-      const data = await res.json();
-      setTopUsers(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error("Failed to load top users:", e);
-      setTopUsers([]);
-    }
-  };
-
-  loadTopUsers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-  // Helper to merge new nodes/links into existing graph
-  const mergeGraphData = useCallback((oldData: GraphData, newData: GraphData) => {
-    const nodeMap = new Map(oldData.nodes.map(n => [n.id, n]));
-    newData.nodes.forEach(n => {
-      if (!nodeMap.has(n.id)) {
-        nodeMap.set(n.id, n);
+      try {
+        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/users/top", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!res.ok) throw new Error(`Failed to fetch top users: ${res.status} ${res.statusText}`);
+        const data = await res.json();
+        setTopUsers(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to load top users:", e);
+        setTopUsers([]);
       }
-    });
-
-    const linkSet = new Set(oldData.links.map(l => `${l.source}->${l.target}`));
-    const newLinks: LinkType[] = [];
-
-    newData.links.forEach(l => {
-      const key = `${l.source}->${l.target}`;
-      if (!linkSet.has(key)) {
-        linkSet.add(key);
-        newLinks.push(l);
-      }
-    });
-
-    return {
-      nodes: Array.from(nodeMap.values()),
-      links: [...oldData.links, ...newLinks]
     };
+    loadTopUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch graph data for a node
-  // const fetchGraph = useCallback(async (nodeId: string, expand = false) => {
-  //   setLoading(true);
-  //   setError(null);
-
-  //   try {
-  //     let data: any;
-
-  //     if (USE_LOCAL_TEST_MODE) {
-  //       // Local test mode: use the full graph data
-  //       data = LOCAL_GRAPH_MAP;
-  //       console.log('Using local test data for node:', nodeId);
-  //     } else {
-  //       // Real API call
-  //       const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph" + "?node_id=" + nodeId, {
-  //         method: 'GET',
-  //         headers: { 'Content-Type': 'application/json' }
-  //       });
-
-  //       if (!res.ok) {
-  //         throw new Error(`API error: ${res.status} ${res.statusText}`);
-  //       }
-
-  //       data = await res.json();
-  //     }
-
-  //     // Preserve raw response for testing/inspection
-  //     setRawResponse(data);
-
-  //     // Normalize response: accept either `links` or `edges` (with src/dst)
-  //     const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
-  //     let allEdges: any[] = [];
-  //     if (Array.isArray(data.links)) allEdges = data.links;
-  //     else if (Array.isArray(data.edges)) allEdges = data.edges;
-
-  //     let relevantNodes: any[];
-  //     let links: any[];
-
-  //     if (expand) {
-  //       // When expanding: show the node and its direct neighbors
-  //       const relevantEdges = allEdges.filter((e: any) => {
-  //         const src = e.src ?? e.source;
-  //         const dst = e.dst ?? e.target;
-  //         return src === nodeId || dst === nodeId;
-  //       });
-
-  //       // Get IDs of nodes connected to the clicked node
-  //       const connectedNodeIds = new Set<string>([nodeId]);
-  //       relevantEdges.forEach((e: any) => {
-  //         const src = e.src ?? e.source;
-  //         const dst = e.dst ?? e.target;
-  //         connectedNodeIds.add(src);
-  //         connectedNodeIds.add(dst);
-  //       });
-
-  //       // Filter nodes to only include the clicked node and its neighbors
-  //       relevantNodes = allNodes.filter((n: any) => connectedNodeIds.has(n.id));
-
-  //       // Convert edges to links format
-  //       links = relevantEdges.map((e: any) => ({
-  //         source: e.src ?? e.source,
-  //         target: e.dst ?? e.target
-  //       }));
-  //     } else {
-  //       // Initial load: show only the single node, no connections
-  //       relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
-  //       links = [];
-  //     }
-
-  //     // Validate normalized data
-  //     if (!Array.isArray(relevantNodes)) {
-  //       throw new Error('Invalid graph data format');
-  //     }
-
-  //     const normalized = {
-  //       nodes: relevantNodes.map((n: any) => ({
-  //         id: String(n.id),
-  //         label: n.label ?? String(n.id),
-  //         type: n.type
-  //       })),
-  //       links
-  //     };
-
-  //     if (expand) {
-  //       setGraphData(prev => mergeGraphData(prev, normalized));
-  //     } else {
-  //       setGraphData(normalized);
-  //     }
-
-  //     // Don't mark as expanded on initial load, only when actually expanding
-  //     if (expand) {
-  //       setExpandedNodes(prev => new Set(prev).add(nodeId));
-  //     }
-  //   } catch (e) {
-  //     const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
-  //     setError(errorMsg);
-  //     console.error('Graph fetch error:', e);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [mergeGraphData]);
+  const mergeGraphData = useCallback((oldData: GraphData, newData: GraphData) => {
+    const nodeMap = new Map(oldData.nodes.map(n => [n.id, n]));
+    newData.nodes.forEach(n => { if (!nodeMap.has(n.id)) nodeMap.set(n.id, n); });
+    const linkSet = new Set(oldData.links.map(l => `${l.source}->${l.target}`));
+    const newLinks: LinkType[] = [];
+    newData.links.forEach(l => {
+      const key = `${l.source}->${l.target}`;
+      if (!linkSet.has(key)) { linkSet.add(key); newLinks.push(l); }
+    });
+    return { nodes: Array.from(nodeMap.values()), links: [...oldData.links, ...newLinks] };
+  }, []);
 
   const fetchGraph = useCallback(async (nodeId: string, expand = false) => {
-    if (expand) {
-      setExpanding(true);
-    } else {
-      setInitialLoading(true);
-    }
+    if (expand) setExpanding(true);
+    else setInitialLoading(true);
     setError(null);
 
     try {
       let data: any;
-
       if (USE_LOCAL_TEST_MODE) {
         data = LOCAL_GRAPH_MAP;
       } else {
@@ -271,11 +298,7 @@ useEffect(() => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ node_id: nodeId }),
         });
-
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status} ${res.statusText}`);
-        }
-
+        if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
         data = await res.json();
       }
 
@@ -288,35 +311,22 @@ useEffect(() => {
       let links: LinkType[];
 
       if (expand) {
-        const relevantEdges = allEdges.filter((e: any) =>
-          e.source === nodeId || e.target === nodeId
-        );
-
+        const relevantEdges = allEdges.filter((e: any) => e.source === nodeId || e.target === nodeId);
         const connectedIds = new Set<string>([nodeId]);
-        relevantEdges.forEach((e: any) => {
-          connectedIds.add(e.source);
-          connectedIds.add(e.target);
-        });
+        relevantEdges.forEach((e: any) => { connectedIds.add(e.source); connectedIds.add(e.target); });
 
-        // Nodes that exist in the response
         const foundNodes = allNodes.filter((n: any) => connectedIds.has(n.id));
         const foundNodeIds = new Set(foundNodes.map((n: any) => n.id));
-
-        // ✅ Create placeholder nodes for any IDs referenced in edges but missing from nodes array
         const placeholderNodes = Array.from(connectedIds)
           .filter(id => !foundNodeIds.has(id))
           .map(id => ({
             id,
-            // Derive a readable label: strip prefix like "usr:", "host:", "ip:"
             label: id.includes(':') ? id.split(':').slice(1).join(':') : id,
             type: id.includes(':') ? id.split(':')[0].toUpperCase() : 'UNKNOWN',
           }));
 
         relevantNodes = [...foundNodes, ...placeholderNodes];
-        links = relevantEdges.map((e: any) => ({
-          source: e.source,
-          target: e.target,
-        }));
+        links = relevantEdges.map((e: any) => ({ source: e.source, target: e.target }));
       } else {
         relevantNodes = allNodes.filter((n: any) => n.id === nodeId);
         links = [];
@@ -337,7 +347,6 @@ useEffect(() => {
       } else {
         setGraphData(normalized);
       }
-
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Failed to load graph';
       setError(errorMsg);
@@ -348,22 +357,110 @@ useEffect(() => {
     }
   }, [mergeGraphData]);
 
-
-
-  // Handle node click to expand
   const handleNodeClick = useCallback((node: NodeType) => {
     if (!expandedNodes.has(node.id)) {
-      // Set wait cursor on the graph container
-      if (containerRef.current) {
-        containerRef.current.style.cursor = 'wait';
-      }
+      if (containerRef.current) containerRef.current.style.cursor = 'wait';
       fetchGraph(node.id, true).finally(() => {
-        if (containerRef.current) {
-          containerRef.current.style.cursor = 'default';
-        }
+        if (containerRef.current) containerRef.current.style.cursor = 'default';
       });
     }
   }, [expandedNodes, fetchGraph]);
+
+  // ─── Node renderer ──────────────────────────────────────────────────────────
+  const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const isExpanded = expandedNodes.has(node.id);
+    const cfg = getTypeConfig(node.type);
+    // Larger base node sizes — divided by globalScale so they stay consistent in world units
+    const r = (isExpanded ? 20 : 15) / globalScale;
+    const cx: number = node.x;
+    const cy: number = node.y;
+
+    // Glow / shadow ring for expanded nodes
+    if (isExpanded) {
+      ctx.save();
+      ctx.shadowColor = cfg.color + '88';
+      ctx.shadowBlur = 16 / globalScale;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 3 / globalScale, 0, Math.PI * 2);
+      ctx.fillStyle = cfg.color + '18';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Outer border ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = cfg.border;
+    ctx.fill();
+
+    // Inner filled circle
+    const borderW = 2.5 / globalScale;
+    const innerR = r - borderW;
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = cfg.bg;
+    ctx.fill();
+
+    // Icon in the node's main color
+    ctx.save();
+    ctx.fillStyle = cfg.color;
+    ctx.strokeStyle = cfg.color;
+    ctx.lineWidth = r * 0.12;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawNodeIcon(ctx, node.type, cx, cy, innerR);
+    ctx.restore();
+
+    // Label — font size is purely world-space (scales with zoom naturally)
+    // Keep it noticeably smaller than the node radius
+    const fontSize = r * 0.55;
+    ctx.font = `${isExpanded ? '600' : '500'} ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    const label = node.label;
+    const textWidth = ctx.measureText(label).width;
+    const padH = fontSize * 0.4;
+    const padV = fontSize * 0.3;
+    const bgW = textWidth + padH * 2;
+    const bgH = fontSize + padV * 2;
+    const bgX = cx - bgW / 2;
+    const bgY = cy + r + 3 / globalScale;
+
+    // Pill background
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(bgX, bgY, bgW, bgH, bgH / 2);
+    } else {
+      ctx.rect(bgX, bgY, bgW, bgH);
+    }
+    ctx.fillStyle = isExpanded ? cfg.color : (isDark ? 'rgba(20,24,35,0.90)' : 'rgba(255,255,255,0.93)');
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = isExpanded ? '#ffffff' : (isDark ? '#e2e8f0' : cfg.color);
+    ctx.fillText(label, cx, bgY + bgH / 2);
+
+    // Small amber dot = unexpanded indicator (top-right of node)
+    if (!isExpanded) {
+      const dotR = r * 0.2;
+      ctx.beginPath();
+      ctx.arc(cx + r * 0.7, cy - r * 0.7, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+      ctx.strokeStyle = isDark ? '#0f1117' : '#ffffff';
+      ctx.lineWidth = 1.5 / globalScale;
+      ctx.stroke();
+    }
+  }, [expandedNodes, isDark]);
+
+  // ─── Legend ─────────────────────────────────────────────────────────────────
+  const LEGEND_ITEMS = [
+    { type: 'USER',     label: 'User' },
+    { type: 'HOSTNAME', label: 'Hostname' },
+    { type: 'IP',       label: 'IP Address' },
+    { type: 'FIREWALL', label: 'Firewall' },
+    { type: 'EMAIL',    label: 'Email' },
+    { type: 'WEB_URL',  label: 'Web URL' },
+  ];
 
   return (
     <div>
@@ -399,27 +496,18 @@ useEffect(() => {
                         fetchGraph(u.node_id);
                       }}
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                        isSelected
-                          ? 'text-white'
-                          : 'text-gray-700 dark:text-gray-300'
+                        isSelected ? 'text-white' : 'text-gray-700 dark:text-gray-300'
                       }`}
                       style={
                         isSelected
-                          ? {
-                              background: 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)',
-                              boxShadow: '0px 4px 10px 0px #00000022',
-                            }
-                          : {
-                              background: 'transparent',
-                            }
+                          ? { background: 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)', boxShadow: '0px 4px 10px 0px #00000022' }
+                          : { background: 'transparent' }
                       }
                       onMouseEnter={e => {
                         if (!isSelected) {
-                          (e.currentTarget as HTMLButtonElement).style.background =
-                            'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)';
+                          (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)';
                           (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
-                          (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                            '0px 4px 10px 0px #00000022';
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow = '0px 4px 10px 0px #00000022';
                         }
                       }}
                       onMouseLeave={e => {
@@ -436,20 +524,46 @@ useEffect(() => {
                 })}
               </div>
             )}
+
+            {/* Legend */}
+            <div className="mt-6 pt-4" style={{ borderTop: isDark ? '1px solid #374151' : '1px solid #e5e7eb' }}>
+              <h5 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Node Types</h5>
+              <div className="space-y-1.5">
+                {LEGEND_ITEMS.map(({ type, label }) => {
+                  const cfg = getTypeConfig(type);
+                  return (
+                    <div key={type} className="flex items-center gap-2">
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          background: cfg.bg,
+                          border: `2px solid ${cfg.border}`,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span className="text-xs text-gray-600 dark:text-gray-300">{label}</span>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-2 pt-1">
+                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Unexpanded node</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Graph Area */}
           <div className="w-3/4" ref={containerRef}>
-            {/* Error Display */}
             {error && (
-              <div className="rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+              <div className="rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-900/20 dark:text-red-300 mb-3">
                 Error: {error}
               </div>
             )}
 
-
-
-            {/* Graph Canvas — always visible */}
             <div
               style={{
                 position: 'relative',
@@ -462,7 +576,6 @@ useEffect(() => {
                 backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
               }}
             >
-              {/* Empty / loading placeholder shown inside canvas when no data yet */}
               {graphData.nodes.length === 0 && !initialLoading && (
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm pointer-events-none">
                   {selectedUserId ? 'No graph data available' : 'Select a user to view the graph'}
@@ -473,19 +586,12 @@ useEffect(() => {
                   Loading graph…
                 </div>
               )}
-              {/* Subtle overlay spinner during expansion — doesn't shift layout */}
               {expanding && (
                 <div style={{
-                  position: 'absolute',
-                  top: 12,
-                  right: 12,
-                  zIndex: 10,
+                  position: 'absolute', top: 12, right: 12, zIndex: 10,
                   background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
-                  borderRadius: '8px',
-                  padding: '4px 10px',
-                  fontSize: '12px',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                  borderRadius: '8px', padding: '4px 10px', fontSize: '12px',
+                  color: isDark ? '#94a3b8' : '#475569', boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                 }}>
                   Expanding…
                 </div>
@@ -496,66 +602,27 @@ useEffect(() => {
                 graphData={graphData}
                 width={canvasSize.width}
                 height={canvasSize.height}
-                nodeLabel="label"
-                nodeRelSize={8}
-                nodeVal={(node: any) => expandedNodes.has(node.id) ? 12 : 8}
-                nodeColor={(node: any) => expandedNodes.has(node.id) ? '#3b82f6' : '#94a3b8'}
-                nodeCanvasObject={(node: any, ctx, globalScale) => {
-                  const label = node.label;
-                  const fontSize = 12 / globalScale;
-                  const nodeRadius = (expandedNodes.has(node.id) ? 12 : 8) / globalScale;
-
+                nodeLabel=""
+                nodeRelSize={6}
+                nodeVal={(node: any) => expandedNodes.has(node.id) ? 26 : 15}
+                nodeCanvasObject={nodeCanvasObject}
+                nodeCanvasObjectMode={() => 'replace'}
+                nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                  const isExpanded = expandedNodes.has(node.id);
+                  const r = (isExpanded ? 20 : 15) / globalScale;
                   ctx.beginPath();
-                  ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
-                  ctx.fillStyle = expandedNodes.has(node.id) ? '#3b82f6' : '#94a3b8';
+                  ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+                  ctx.fillStyle = color;
                   ctx.fill();
-                  ctx.strokeStyle = '#fff';
-                  ctx.lineWidth = 2 / globalScale;
-                  ctx.stroke();
-
-                  ctx.font = `${fontSize}px Sans-Serif`;
-                  const textWidth = ctx.measureText(label).width;
-                  const bckgDimensions = [textWidth + fontSize * 0.4, fontSize + fontSize * 0.4];
-
-                  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                  ctx.fillRect(
-                    node.x - bckgDimensions[0] / 2,
-                    node.y + nodeRadius + 5 / globalScale,
-                    bckgDimensions[0],
-                    bckgDimensions[1]
-                  );
-
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'top';
-                  ctx.fillStyle = expandedNodes.has(node.id) ? '#1e40af' : '#475569';
-                  ctx.fillText(label, node.x, node.y + nodeRadius + 7 / globalScale);
-
-                  if (!expandedNodes.has(node.id)) {
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, nodeRadius * 0.4, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = '#fff';
-                    ctx.fill();
-                    ctx.strokeStyle = '#94a3b8';
-                    ctx.lineWidth = 1.5 / globalScale;
-                    ctx.stroke();
-
-                    ctx.strokeStyle = '#64748b';
-                    ctx.lineWidth = 1.5 / globalScale;
-                    ctx.beginPath();
-                    ctx.moveTo(node.x - nodeRadius * 0.2, node.y);
-                    ctx.lineTo(node.x + nodeRadius * 0.2, node.y);
-                    ctx.moveTo(node.x, node.y - nodeRadius * 0.2);
-                    ctx.lineTo(node.x, node.y + nodeRadius * 0.2);
-                    ctx.stroke();
-                  }
                 }}
                 linkDirectionalArrowLength={6}
                 linkDirectionalArrowRelPos={1}
-                linkWidth={2}
-                linkColor={() => '#cbd5e1'}
+                linkWidth={1.5}
+                linkColor={() => isDark ? '#334155' : '#cbd5e1'}
                 linkDirectionalParticles={2}
                 linkDirectionalParticleWidth={2}
                 linkDirectionalParticleSpeed={0.004}
+                linkDirectionalParticleColor={() => '#6366f1'}
                 onNodeClick={(node) => handleNodeClick(node as NodeType)}
                 enableNodeDrag={true}
                 enableZoomInteraction={true}
@@ -569,11 +636,10 @@ useEffect(() => {
               />
             </div>
 
-            {/* Debug Info (remove in production) */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 rounded bg-gray-100 p-3 text-xs dark:bg-gray-800">
                 <div>Nodes: {graphData.nodes.length}</div>
-                <div>links: {graphData.links.length}</div>
+                <div>Links: {graphData.links.length}</div>
                 <div>Expanded: {expandedNodes.size}</div>
               </div>
             )}
