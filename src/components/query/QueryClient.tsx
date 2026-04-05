@@ -2,9 +2,11 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
 import { API_CONFIG } from "@/config/api";
+import { savedQueriesService, type SavedQuery } from "@/services/savedQueriesService";
 
 // Dynamically import Monaco Editor to avoid SSR issues
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -34,6 +36,34 @@ interface ValidationMarker {
 }
 
 type QueryLanguage = "pyspark" | "sql";
+
+interface RunHistoryEntry {
+  id: string;
+  query: string;
+  language: QueryLanguage;
+  ranAt: number;
+}
+
+const MAX_RUN_HISTORY = 10;
+
+function formatRunTimeAgo(ts: number): string {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 10) return "Just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function previewQueryOneLine(query: string, maxLen = 72): string {
+  const line = query.trim().split(/\r?\n/)[0] || "";
+  const collapsed = line.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= maxLen) return collapsed || "(empty)";
+  return `${collapsed.slice(0, maxLen - 1)}…`;
+}
 
 // ─────────────────────────────────────────────────────────────
 // SQL VALIDATOR
@@ -487,24 +517,55 @@ export default function QueryClient() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [executionHistory, setExecutionHistory] = useState<string[]>([]);
+  const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState<"logs" | "raw" | "table">("logs");
   const [validationMarkers, setValidationMarkers] = useState<ValidationMarker[]>([]);
+
+  // ── Save Query modal state ────────────────────────────────────
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveDesc, setSaveDesc] = useState("");
+  const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [historyPanelExpanded, setHistoryPanelExpanded] = useState(false);
+
   const { t } = useLanguage();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { resolvedTheme } = useTheme();
+  const reduceMotion = useReducedMotion();
+
+  // ── On mount: consume any pending query handed off from Alerts page ──
+  useEffect(() => {
+    const pending = savedQueriesService.consumePendingLoad();
+    if (pending) {
+      setQueryInput(pending.query);
+      setLanguage(pending.language as QueryLanguage);
+      // Give Monaco a tick to mount before validating
+      setTimeout(() => {
+        if (monacoRef.current && editorRef.current) {
+          runValidation(pending.query, pending.language as QueryLanguage, monacoRef.current, editorRef.current);
+        }
+      }, 300);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Dismiss toast after 3 s ───────────────────────────────────
+  useEffect(() => {
+    if (!saveToast) return;
+    const t = setTimeout(() => setSaveToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [saveToast]);
 
   const sampleQueries = {
     pyspark: `# PySpark Query Example
 df = spark.read.table("security_events")
 df.filter(df.severity == "Critical").show()`,
     sql: `-- SQL Query Example
-SELECT * FROM security_events 
-WHERE severity = 'Critical' 
-ORDER BY timestamp DESC 
+SELECT * FROM security_events
+WHERE severity = 'Critical'
+ORDER BY timestamp DESC
 LIMIT 100`,
   };
 
@@ -563,23 +624,57 @@ LIMIT 100`,
 
   const loadFromHistory = useCallback(
     (direction: "up" | "down") => {
-      if (executionHistory.length === 0) return;
+      if (runHistory.length === 0) return;
       let newIndex = historyIndex;
-      if (direction === "up") newIndex = Math.min(historyIndex + 1, executionHistory.length - 1);
+      if (direction === "up") newIndex = Math.min(historyIndex + 1, runHistory.length - 1);
       else newIndex = Math.max(historyIndex - 1, -1);
       setHistoryIndex(newIndex);
-      if (newIndex >= 0) setQueryInput(executionHistory[newIndex]);
-      else setQueryInput("");
+      if (newIndex >= 0) {
+        const entry = runHistory[newIndex];
+        setQueryInput(entry.query);
+        setLanguage(entry.language);
+        setTimeout(() => {
+          if (monacoRef.current && editorRef.current) {
+            runValidation(entry.query, entry.language, monacoRef.current, editorRef.current);
+          }
+        }, 0);
+      } else {
+        setQueryInput("");
+      }
     },
-    [executionHistory, historyIndex]
+    [runHistory, historyIndex, runValidation]
+  );
+
+  const applyHistoryEntry = useCallback(
+    (entry: RunHistoryEntry, indexInHistory: number) => {
+      setQueryInput(entry.query);
+      setLanguage(entry.language);
+      setHistoryIndex(indexInHistory);
+      setTimeout(() => {
+        if (monacoRef.current && editorRef.current) {
+          runValidation(entry.query, entry.language, monacoRef.current, editorRef.current);
+        }
+      }, 0);
+    },
+    [runValidation]
   );
 
   const handleRun = useCallback(async () => {
     if (!queryInput.trim()) { alert("Please enter a query"); return; }
 
+    const historyEntry: RunHistoryEntry = {
+      id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      query: queryInput,
+      language,
+      ranAt: Date.now(),
+    };
+    setRunHistory((prev) => [historyEntry, ...prev].slice(0, MAX_RUN_HISTORY));
+    setHistoryIndex(-1);
+
     // Block execution if there are hard errors
     const hardErrors = validationMarkers.filter((m) => m.severity === 8);
     if (hardErrors.length > 0) {
+      setResult(null);
       setError(
         `Cannot run query — fix ${hardErrors.length} syntax error${hardErrors.length > 1 ? "s" : ""} first:\n` +
           hardErrors.map((e) => `  Line ${e.startLineNumber}: ${e.message}`).join("\n")
@@ -590,11 +685,9 @@ LIMIT 100`,
     setIsRunning(true);
     setResult(null);
     setError(null);
-    setExecutionHistory((prev) => [queryInput, ...prev.slice(0, 49)]);
-    setHistoryIndex(-1);
 
     const startTime = performance.now();
-    const USE_DUMMY_DATA = false;
+    const USE_DUMMY_DATA = true;
 
     try {
       let data: any;
@@ -635,6 +728,32 @@ LIMIT 100`,
       setIsRunning(false);
     }
   }, [queryInput, language, validationMarkers]);
+
+  // ── Save Query handlers ───────────────────────────────────────
+  const openSaveModal = useCallback(() => {
+    if (!queryInput.trim()) return;
+    setSaveName("");
+    setSaveDesc("");
+    setShowSaveModal(true);
+  }, [queryInput]);
+
+  const handleSaveQuery = useCallback(() => {
+    if (!saveName.trim()) return;
+    try {
+      savedQueriesService.save({
+        name: saveName.trim(),
+        description: saveDesc.trim() || undefined,
+        query: queryInput,
+        language,
+      });
+      setShowSaveModal(false);
+      setSaveName("");
+      setSaveDesc("");
+      setSaveToast({ type: "success", msg: `Query "${saveName.trim()}" saved successfully!` });
+    } catch {
+      setSaveToast({ type: "error", msg: "Failed to save query. Please try again." });
+    }
+  }, [saveName, saveDesc, queryInput, language]);
 
   const handleClear = useCallback(() => {
     setQueryInput("");
@@ -910,7 +1029,7 @@ LIMIT 100`,
       )}
 
       {/* Action Buttons */}
-      <div className="flex-shrink-0 flex gap-3">
+      <div className="flex-shrink-0 flex flex-wrap gap-3">
         <button
           onClick={handleRun}
           disabled={isRunning || !queryInput.trim()}
@@ -938,6 +1057,19 @@ LIMIT 100`,
           )}
         </button>
 
+        {/* ── Save Query Button ── */}
+        <button
+          onClick={openSaveModal}
+          disabled={isRunning || !queryInput.trim()}
+          title="Save this query to Custom Queries"
+          className="flex items-center gap-2 rounded-lg border border-emerald-500 bg-white px-6 py-2.5 text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500 dark:bg-gray-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          <span>Save Query</span>
+        </button>
+
         <button
           onClick={handleClear}
           disabled={isRunning}
@@ -946,13 +1078,231 @@ LIMIT 100`,
           Clear
         </button>
 
-        {executionHistory.length > 0 && (
+        {runHistory.length > 0 && (
           <div className="flex gap-1">
-            <button onClick={() => loadFromHistory("up")} disabled={isRunning || historyIndex >= executionHistory.length - 1} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" title="Previous query">↑</button>
-            <button onClick={() => loadFromHistory("down")} disabled={isRunning || historyIndex < 0} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" title="Next query">↓</button>
+            <button onClick={() => loadFromHistory("up")} disabled={isRunning || historyIndex >= runHistory.length - 1} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" title="Older run">↑</button>
+            <button onClick={() => loadFromHistory("down")} disabled={isRunning || historyIndex < 0} className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" title="Newer run">↓</button>
           </div>
         )}
       </div>
+
+      {/* Recent query runs (last 10) — collapsible so results stay visible */}
+      {runHistory.length > 0 && (
+        <div className="min-h-0 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-b from-white to-gray-50/80 shadow-sm dark:border-gray-700 dark:from-gray-900 dark:to-gray-900/95">
+          <button
+            type="button"
+            onClick={() => setHistoryPanelExpanded((open) => !open)}
+            aria-expanded={historyPanelExpanded}
+            className="flex w-full items-center gap-3 rounded-t-xl px-4 py-2.5 text-left transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/50"
+          >
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-950/50">
+              <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Recent queries</h3>
+                <span className="rounded-full bg-gray-200/90 px-2 py-0.5 text-[11px] font-medium tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                  {runHistory.length}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {historyPanelExpanded ? "Click a row to load into the editor" : "Expand to browse past runs — keeps results in view"}
+              </p>
+            </div>
+            <svg
+              className={`h-5 w-5 flex-shrink-0 text-gray-400 transition-transform dark:text-gray-500 ${reduceMotion ? "duration-150 ease-linear" : "duration-[360ms] ease-[cubic-bezier(0.16,1,0.3,1)]"} ${historyPanelExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <AnimatePresence initial={false}>
+            {historyPanelExpanded && (
+              <motion.div
+                key="recent-queries-list"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  height: { duration: reduceMotion ? 0.01 : 0.36, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: reduceMotion ? 0.01 : 0.22, ease: "easeOut" },
+                }}
+                className="min-h-0 overflow-hidden border-t border-gray-200/80 dark:border-gray-700/80"
+              >
+                <ul
+                  className="max-h-[220px] divide-y divide-gray-100 overflow-y-auto dark:divide-gray-800"
+                  role="list"
+                >
+                  {runHistory.map((entry, idx) => {
+                    const isActive = historyIndex === idx;
+                    return (
+                      <li key={entry.id}>
+                        <button
+                          type="button"
+                          onClick={() => applyHistoryEntry(entry, idx)}
+                          disabled={isRunning}
+                          className={`group flex w-full items-start gap-3 px-4 py-3 text-left transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 ${
+                            isActive
+                              ? "bg-blue-50/90 dark:bg-blue-950/40"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800/70"
+                          }`}
+                        >
+                          <span
+                            className={`mt-0.5 flex-shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300`}
+                          >
+                            {entry.language}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-xs leading-snug text-gray-800 dark:text-gray-200">{previewQueryOneLine(entry.query)}</p>
+                            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{formatRunTimeAgo(entry.ranAt)}</p>
+                          </div>
+                          <span className="flex-shrink-0 pt-0.5 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100 dark:text-gray-600" aria-hidden>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* ── Save Toast notification ── */}
+      {saveToast && (
+        <div
+          className={`flex-shrink-0 flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
+            saveToast.type === "success"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+              : "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950 dark:text-red-300"
+          }`}
+        >
+          {saveToast.type === "success" ? (
+            <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span>{saveToast.msg}</span>
+          <button onClick={() => setSaveToast(null)} className="ml-auto opacity-60 hover:opacity-100">
+            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ── Save Query Modal ── */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSaveModal(false)}
+          />
+          {/* Dialog */}
+          <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+            {/* Header */}
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                  <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                </span>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Save Query</h3>
+              </div>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Query preview */}
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <div className="mb-1 flex items-center gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  language === "sql"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                }`}>
+                  {language}
+                </span>
+                <span className="text-xs text-gray-400">{queryInput.split("\n").length} line{queryInput.split("\n").length !== 1 ? "s" : ""}</span>
+              </div>
+              <pre className="max-h-20 overflow-hidden font-mono text-xs text-gray-600 dark:text-gray-400 truncate whitespace-pre-wrap line-clamp-3">
+                {queryInput.slice(0, 200)}{queryInput.length > 200 ? "…" : ""}
+              </pre>
+            </div>
+
+            {/* Name field */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Query Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                // onKeyDown={(e) => { if (e.key === "Enter" && saveName.trim()) handleSaveQuery(); }}
+                placeholder="e.g. Critical Events Last 24h"
+                autoFocus
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-emerald-400"
+              />
+            </div>
+
+            {/* Description field */}
+            <div className="mb-6">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description <span className="text-xs font-normal text-gray-400">(optional)</span>
+              </label>
+              <textarea
+                value={saveDesc}
+                onChange={(e) => setSaveDesc(e.target.value)}
+                placeholder="What does this query do?"
+                rows={2}
+                className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-emerald-400"
+              />
+            </div>
+
+            {/* Footer buttons */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveQuery}
+                disabled={!saveName.trim()}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Save Query
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
