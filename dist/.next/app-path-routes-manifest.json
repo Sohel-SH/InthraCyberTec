@@ -9,8 +9,8 @@
   "/(admin)/(ui-elements)/alerts/page": "/alerts",
   "/(admin)/page": "/",
   "/(full-width-pages)/(auth)/signin/page": "/signin",
-  "/(full-width-pages)/(auth)/signup/page": "/signup",
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
   "/favicon.ico/route": "/favicon.ico"
 }

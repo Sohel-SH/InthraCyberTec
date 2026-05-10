@@ -34,6 +34,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    },
+    {
       "page": "/news/[id]",
       "regex": "^/news/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -108,12 +116,6 @@
       "regex": "^/signin(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/signin(?:/)?$"
-    },
-    {
-      "page": "/signup",
-      "regex": "^/signup(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/signup(?:/)?$"
     },
     {
       "page": "/threat-hunt",

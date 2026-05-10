@@ -9,8 +9,8 @@
   "/(admin)/(ui-elements)/alerts/page": "app/(admin)/(ui-elements)/alerts/page.js",
   "/(admin)/page": "app/(admin)/page.js",
   "/(full-width-pages)/(auth)/signin/page": "app/(full-width-pages)/(auth)/signin/page.js",
-  "/(full-width-pages)/(auth)/signup/page": "app/(full-width-pages)/(auth)/signup/page.js",
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js"
 }

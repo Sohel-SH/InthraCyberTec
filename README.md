@@ -74,6 +74,22 @@ git clone https://github.com/TailAdmin/free-nextjs-admin-dashboard.git
    yarn dev
    ```
 
+## Keycloak Authentication Setup
+
+The app uses NextAuth with the Keycloak provider for login/logout and protected admin routes.
+
+1. Copy `.env.example` to `.env.local`.
+2. Set:
+   - `NEXTAUTH_URL`
+   - `NEXTAUTH_SECRET`
+   - `KEYCLOAK_CLIENT_ID`
+   - `KEYCLOAK_CLIENT_SECRET` (if your Keycloak client is confidential)
+   - `KEYCLOAK_ISSUER` (or use `NEXT_PUBLIC_KEYCLOAK_URL` + `NEXT_PUBLIC_KEYCLOAK_REALM`)
+   - `NEXT_PUBLIC_KEYCLOAK_ADMIN_ROLE` (optional, defaults to `admin`)
+   - `NEXT_PUBLIC_ENABLE_ADMIN_PROTECTION` (`false` for open dashboard, `true` to enforce auth on admin routes)
+3. In Keycloak, configure valid redirect URIs and web origins for your app (for example `http://localhost:3000/*`).
+4. Assign the configured admin role to users who should access admin pages.
+
 ## Components
 
 TailAdmin is a pre-designed starting point for building a web-based dashboard using Next.js and Tailwind CSS. The template includes:

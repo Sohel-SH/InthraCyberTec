@@ -1,13 +1,46 @@
+@import "flatpickr/dist/flatpickr.css";
 @import 'tailwindcss';
+
+@font-face {
+  font-family: "VendSans";
+  src: url("./fonts/VendSans-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VendSans";
+  src: url("./fonts/VendSans-Medium.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VendSans";
+  src: url("./fonts/VendSans-SemiBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VendSans";
+  src: url("./fonts/VendSans-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
 
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-*: initial;
-  --font-outfit: var(--font-vend-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI,
+  --font-outfit: "VendSans", ui-sans-serif, system-ui, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-sans: var(--font-vend-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI,
+  --font-sans: "VendSans", ui-sans-serif, system-ui, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 
   --breakpoint-*: initial;
