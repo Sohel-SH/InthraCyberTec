@@ -2,19 +2,41 @@
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { showError } from "@/utils/sweetalert";
 
 export default function SignInForm() {
   const [redirectPath, setRedirectPath] = useState("/");
-  const { initialized, authenticated, login, register } = useAuth();
+  const { initialized, authenticated, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      let message = "An error occurred during sign in.";
+      let title = "Authentication Error";
+
+      if (error === "OAuthCallback") {
+        message = "There was a problem with the authentication callback. This might be due to a configuration issue on the server.";
+        title = "Backend Error";
+      } else if (error === "AccessDenied") {
+        message = "You do not have permission to access this resource.";
+        title = "Access Denied";
+      } else if (error === "Verification") {
+        message = "The verification link has expired or has already been used.";
+        title = "Verification Error";
+      }
+
+      showError(title, message);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    setRedirectPath(params.get("redirect") || "/");
-  }, []);
+    setRedirectPath(searchParams.get("redirect") || "/");
+  }, [searchParams]);
 
   useEffect(() => {
     if (!initialized || !authenticated) return;
@@ -43,7 +65,7 @@ export default function SignInForm() {
               Continue to Sign In
             </Button>
           </div>
-          <div className="mt-6 text-center">
+          {/* <div className="mt-6 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Don&apos;t have an account?{" "}
               <button
@@ -53,7 +75,7 @@ export default function SignInForm() {
                 Register
               </button>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

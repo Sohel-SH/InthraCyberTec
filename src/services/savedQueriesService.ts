@@ -14,6 +14,13 @@
 //    PUT    /api/saved-queries/:id      → update()
 //    DELETE /api/saved-queries/:id      → remove()
 //
+//  Note: Every outbound HTTP request targeting the Backend API 
+//  must include the token in the headers:
+//  Authorization: Bearer <YOUR_JWT_TOKEN>
+//
+//  Recommended: If calling from a React component, use the 
+//  `useApiClient` hook to automatically handle headers.
+//
 //  The interface and method signatures stay the same, so the
 //  rest of the codebase won't need any changes.
 // ============================================================

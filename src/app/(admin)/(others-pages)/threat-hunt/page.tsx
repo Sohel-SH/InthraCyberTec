@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { API_CONFIG } from "@/config/api";
 import T from "@/components/i18n/T";
 import { useTheme } from "@/context/ThemeContext";
+import { useApiClient } from "@/hooks/useApiClient";
 
 // Dynamically import ForceGraph2D to avoid SSR issues
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
@@ -182,6 +183,7 @@ function drawNodeIcon(ctx: CanvasRenderingContext2D, type: string | undefined, c
 
 export default function ThreatHunt() {
   const { resolvedTheme } = useTheme();
+  const { fetchWithAuth } = useApiClient();
   const isDark = resolvedTheme === "dark";
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -218,7 +220,7 @@ export default function ThreatHunt() {
     }
   }, [graphData]);
 
-  const USE_LOCAL_TEST_MODE = true;
+  const USE_LOCAL_TEST_MODE = false;
 
   const LOCAL_GRAPH_MAP = {
     nodes: [
@@ -255,7 +257,7 @@ export default function ThreatHunt() {
         return;
       }
       try {
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/users/top", {
+        const res = await fetchWithAuth(API_CONFIG.QUERY_ENDPOINT + "/api/users/top", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -293,7 +295,7 @@ export default function ThreatHunt() {
       if (USE_LOCAL_TEST_MODE) {
         data = LOCAL_GRAPH_MAP;
       } else {
-        const res = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/graph", {
+        const res = await fetchWithAuth(API_CONFIG.QUERY_ENDPOINT + "/api/graph", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ node_id: nodeId }),

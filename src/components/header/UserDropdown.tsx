@@ -40,7 +40,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
               alt="User"
             />
           ) : (
-            <UserCircleIcon className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+            <UserCircleIcon className="text-gray-500 dark:text-gray-400" />
           )}
         </span>
 
@@ -80,7 +80,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
           </span>
         </div>
 
-        <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
+        {/* <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
           <li>
             <DropdownItem
               onItemClick={closeDropdown}
@@ -156,7 +156,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
               {t("user.support")}
             </DropdownItem>
           </li>
-        </ul>
+        </ul> */}
         <button
           onClick={() => {
             closeDropdown();

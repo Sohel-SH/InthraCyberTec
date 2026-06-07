@@ -32,4 +32,15 @@ export const API_CONFIG = {
   // QUERY_ENDPOINT: "http://localhost:3000/api/query",
   
   METHOD: "POST",
+
+  /**
+   * Note: Every outbound HTTP request targeting the Backend API 
+   * must include the token in the headers.
+   * 
+   * Header Key: Authorization
+   * Header Value: Bearer <YOUR_JWT_TOKEN>
+   * 
+   * Recommended: Use the `useApiClient` hook which automatically 
+   * handles this.
+   */
 };

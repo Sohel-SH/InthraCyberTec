@@ -29,11 +29,11 @@ export default function AuthLayout({
                     alt="Logo"
                   /> */}
                   <div className="text-center font-semibold text-white  text-3xl
-  sm:text-4xl
-  md:text-5xl
-  lg:text-6xl
-  xl:text-[67px]">INTHRA</div>
-
+                    sm:text-4xl
+                    md:text-5xl
+                    lg:text-6xl
+                    xl:text-[67px]">INTHRA
+                  </div>
                 </Link>
                 <p className="text-center text-gray-400 dark:text-white/60">
                   Advance Insider Threat Detection and Monitoring

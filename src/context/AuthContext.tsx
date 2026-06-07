@@ -4,15 +4,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
 } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { showWarning } from "@/utils/sweetalert";
 
 type AuthContextType = {
   initialized: boolean;
   authenticated: boolean;
   profile: { name?: string | null; email?: string | null; image?: string | null } | null;
   token: string | undefined;
+  tokenExpiresAt: number | undefined;
   roles: string[];
   login: (callbackUrl?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -27,25 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const initialized = status !== "loading";
   const authenticated = status === "authenticated";
-  const profile = useMemo(
-    () =>
-      authenticated
-        ? {
-            name: session?.user?.name,
-            email: session?.user?.email,
-            image: session?.user?.image,
-          }
-        : null,
-    [authenticated, session?.user?.name, session?.user?.email, session?.user?.image]
-  );
-  const token = session?.accessToken;
-  const roles = useMemo(() => session?.user?.roles ?? [], [session?.user?.roles]);
-
-  const login = useCallback(async (callbackUrl?: string) => {
-    await signIn("keycloak", {
-      callbackUrl: callbackUrl || "/",
-    });
-  }, []);
 
   const logout = useCallback(async () => {
     const idToken = session?.idToken;
@@ -64,6 +48,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session]);
 
+  // Proactively handle session errors (like RefreshAccessTokenError)
+  useEffect(() => {
+    if (session?.error === "RefreshAccessTokenError") {
+      showWarning("Session Expired", "Your session has expired. Please sign in again.");
+      logout();
+    }
+  }, [session, logout]);
+
+  const profile = useMemo(
+    () =>
+      authenticated
+        ? {
+            name: session?.user?.name,
+            email: session?.user?.email,
+            image: session?.user?.image,
+          }
+        : null,
+    [authenticated, session?.user?.name, session?.user?.email, session?.user?.image]
+  );
+  const token = session?.accessToken;
+  const tokenExpiresAt = session?.accessTokenExpires;
+  const roles = useMemo(() => session?.user?.roles ?? [], [session?.user?.roles]);
+
+  const login = useCallback(async (callbackUrl?: string) => {
+    await signIn("keycloak", {
+      callbackUrl: callbackUrl || "/",
+    });
+  }, []);
+
   const register = useCallback(async () => {
     await signIn("keycloak", {
       callbackUrl: "/",
@@ -81,13 +94,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authenticated,
       profile,
       token,
+      tokenExpiresAt,
       roles,
       login,
       logout,
       register,
       hasRole,
     }),
-    [initialized, authenticated, profile, token, roles, login, logout, register, hasRole]
+    [initialized, authenticated, profile, token, tokenExpiresAt, roles, login, logout, register, hasRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

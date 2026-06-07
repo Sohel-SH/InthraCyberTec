@@ -17,12 +17,12 @@ export const metadata: Metadata = {
 
 export default function QueryPage() {
   return (
-    <div>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-        <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
+    <div className="flex flex-col">
+      <div className="flex-1 flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
+        <h3 className="mb-5 flex-shrink-0 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
           <T k="query.title" />
         </h3>
-        <div className="space-y-6">
+        <div className="flex-1 min-h-0">
           <QueryClient />
         </div>
       </div>

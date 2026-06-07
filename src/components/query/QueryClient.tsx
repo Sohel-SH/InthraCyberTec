@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useApiClient } from "@/hooks/useApiClient";
 import { API_CONFIG } from "@/config/api";
 import { savedQueriesService, type SavedQuery } from "@/services/savedQueriesService";
 
@@ -45,6 +46,12 @@ interface RunHistoryEntry {
 }
 
 const MAX_RUN_HISTORY = 10;
+
+interface SelectedFieldInfo {
+  name: string;
+  count: number;
+  type: "string" | "number" | "boolean" | "object";
+}
 
 /** Rows per page for query results (keeps large responses renderable). */
 const RESULT_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const;
@@ -524,6 +531,9 @@ export default function QueryClient() {
   const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState<"logs" | "raw" | "table">("logs");
+  const [selectedFields, setSelectedFields] = useState<string[]>(["host", "source", "sourcetype"]);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   const [validationMarkers, setValidationMarkers] = useState<ValidationMarker[]>([]);
 
   // ── Save Query modal state ────────────────────────────────────
@@ -534,6 +544,7 @@ export default function QueryClient() {
   const [historyPanelExpanded, setHistoryPanelExpanded] = useState(false);
 
   const { t } = useLanguage();
+  const { fetchWithAuth } = useApiClient();
 
   // Paginate large result sets client-side (page size is user-selectable).
   const [resultPageSize, setResultPageSize] = useState<ResultPageSize>(10);
@@ -738,7 +749,7 @@ LIMIT 100`,
           { id: 30, timestamp: "2024-02-14T10:50:00Z", user: "grace@contoso.com", action: "DLP rule matched", policy: "Healthcare Data Protection", rule: "Block PHI Sharing", sensitiveInfoType: "Social Security Number", messageSubject: "Patient Records Q1", recipients: ["external-partner@hospital.com"], actionTaken: "Blocked", override: "Medical Director Approval Required", location: "Teams", severity: "Critical", source: "Purview DLP" },
         ];
       } else {
-        const response = await fetch(API_CONFIG.QUERY_ENDPOINT + "/api/execute", {
+        const response = await fetchWithAuth(API_CONFIG.QUERY_ENDPOINT + "/api/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: queryInput, language, timestamp: new Date().toISOString() }),
@@ -834,6 +845,33 @@ LIMIT 100`,
 
   // Results pagination
   const totalResultRows = Array.isArray(result?.data) ? result.data.length : 0;
+
+  const allFields = React.useMemo(() => {
+    if (!result?.data || !Array.isArray(result.data)) return [];
+    const fieldMap = new Map<string, SelectedFieldInfo>();
+    result.data.forEach(row => {
+      Object.entries(row).forEach(([key, value]) => {
+        if (key === "raw_data" || key === "timestamp" || key === "time" || key === "_raw") return;
+        const existing = fieldMap.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          fieldMap.set(key, {
+            name: key,
+            count: 1,
+            type: typeof value as any
+          });
+        }
+      });
+    });
+    return Array.from(fieldMap.values()).sort((a, b) => b.count - a.count);
+  }, [result?.data]);
+
+  const { selectedFieldsInfo, interestingFieldsInfo } = React.useMemo(() => {
+    const selected = allFields.filter(f => selectedFields.includes(f.name));
+    const interesting = allFields.filter(f => !selectedFields.includes(f.name));
+    return { selectedFieldsInfo: selected, interestingFieldsInfo: interesting };
+  }, [allFields, selectedFields]);
   const totalResultPages = Math.max(1, Math.ceil(totalResultRows / resultPageSize));
   const currentResultPage = Math.min(resultPage, totalResultPages - 1);
   const pagedResultData =
@@ -869,29 +907,167 @@ LIMIT 100`,
       .replace(/: (true|false)/g, ': <span style="color: #2563eb;">$1</span>')
       .replace(/: (null)/g, ': <span style="color: #9333ea;">$1</span>');
 
+  const toggleRowExpansion = (idx: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleField = (fieldName: string) => {
+    setSelectedFields(prev =>
+      prev.includes(fieldName)
+        ? prev.filter(f => f !== fieldName)
+        : [...prev, fieldName]
+    );
+  };
+
   const renderLogsView = (events: any[]) => {
     if (!events || events.length === 0) return <div className="p-4 text-gray-500 dark:text-gray-400">No events found</div>;
+
     return (
-      <div className="space-y-0">
-        <div className="sticky top-0 z-10 grid grid-cols-12 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 font-mono text-xs font-semibold text-gray-600 dark:text-gray-400">
-          <div className="col-span-2">Time</div>
-          <div className="col-span-10">Output</div>
-        </div>
-        {events.map((row, idx) => {
-          const timestamp = row.timestamp || row.time || row.ts || new Date().toISOString();
-          return (
-            <div key={idx} className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-              <div className="col-span-2 border-r border-gray-200 dark:border-gray-700 px-3 py-2 font-mono text-xs text-gray-500 dark:text-gray-400">
-                {new Date(timestamp).toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).replace(/(\d+)\/(\d+)\/(\d+),/, "$3-$1-$2")}
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar */}
+        {sidebarVisible && (
+          <div className="w-64 flex-shrink-0 border-r border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/50 overflow-y-auto px-1 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+            <div className="px-2 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Selected Fields</h4>
               </div>
-              <div className="col-span-10 px-3 py-2">
-                <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-gray-700 dark:text-gray-200">
-                  <code className="language-json" dangerouslySetInnerHTML={{ __html: syntaxHighlightJSON(JSON.stringify(row, null, 2)) }} />
-                </pre>
+              <div className="space-y-0.5">
+                {selectedFieldsInfo.length > 0 ? (
+                  selectedFieldsInfo.map(field => (
+                    <button
+                      key={field.name}
+                      onClick={() => toggleField(field.name)}
+                      className="group flex w-full items-center justify-between rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+                    >
+                      <span className="truncate flex items-center gap-1.5">
+                        <span className="text-[10px] opacity-50 italic w-2 text-center">a</span>
+                        {field.name}
+                      </span>
+                      <span className="text-[10px] tabular-nums opacity-60 group-hover:opacity-100">{field.count}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-2 text-[10px] italic text-gray-400">No fields selected</p>
+                )}
               </div>
             </div>
-          );
-        })}
+
+            <div className="px-2">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Interesting Fields</h4>
+              </div>
+              <div className="space-y-0.5 max-h-[200px]">
+                {interestingFieldsInfo.map(field => (
+                  <button
+                    key={field.name}
+                    onClick={() => toggleField(field.name)}
+                    className="group flex w-full items-center justify-between rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <span className="truncate flex items-center gap-1.5">
+                      <span className="text-[10px] opacity-50 italic w-2 text-center">{field.type === "number" ? "#" : "a"}</span>
+                      {field.name}
+                    </span>
+                    <span className="text-[10px] tabular-nums opacity-60 group-hover:opacity-100">{field.count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Logs Area */}
+        <div className="flex-1 overflow-y-auto min-w-0 bg-white dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+          <div className="sticky top-0 z-10 flex border-b border-gray-200 dark:border-gray-700 bg-gray-100/95 dark:bg-gray-800/95 backdrop-blur-sm px-3 py-2 font-mono text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+            <div className="w-8 flex-shrink-0 text-center">i</div>
+            <div className="w-48 flex-shrink-0 px-2 border-r border-gray-200/50 dark:border-gray-700/50">Time</div>
+            <div className="flex-1 px-4">Event</div>
+          </div>
+          {events.map((row, idx) => {
+            const timestamp = row.timestamp || row.time || row.ts || new Date().toISOString();
+            const isExpanded = expandedRows.has(idx);
+            const rawContent = row.raw_data || row._raw || row.message || row.event || (
+              Object.entries(row)
+                .filter(([k]) => !["timestamp", "time", "ts", "_raw"].includes(k))
+                .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
+                .join(" ")
+            );
+
+            return (
+              <div key={idx} className={`border-b border-gray-100 dark:border-gray-800/50 transition-colors hover:bg-blue-50/30 dark:hover:bg-blue-900/5 ${isExpanded ? 'bg-blue-50/10 dark:bg-blue-900/5' : ''}`}>
+                <div className="flex items-start px-3 py-2 font-mono text-xs">
+                  <button
+                    onClick={() => toggleRowExpansion(idx)}
+                    className="w-8 flex-shrink-0 flex justify-center mt-0.5 text-gray-400 hover:text-blue-500 transition-all duration-200"
+                    style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                  >
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <div className="w-48 flex-shrink-0 px-2 text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-100 dark:border-gray-800/50">
+                    {new Date(timestamp).toLocaleString("en-US", {
+                      year: "numeric", month: "2-digit", day: "2-digit",
+                      hour: "2-digit", minute: "2-digit", second: "2-digit",
+                      hour12: false
+                    }).replace(/(\d+)\/(\d+)\/(\d+),/, "$3-$1-$2")}
+                  </div>
+                  <div className="flex-1 px-4 min-w-0">
+                    <div className={`break-words text-gray-700 dark:text-gray-200 leading-relaxed ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                      {rawContent}
+                    </div>
+
+                    {/* Quick Selected Fields view (inline) */}
+                    {!isExpanded && selectedFields.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 opacity-80">
+                        {selectedFields.map(f => row[f] !== undefined && (
+                          <div key={f} className="flex items-center gap-1.5 text-[10px]">
+                            <span className="font-semibold text-gray-400 dark:text-gray-500">{f}=</span>
+                            <span className="text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 px-1 rounded">{String(row[f])}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Expanded Detail View */}
+                    {isExpanded && (
+                      <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 p-4 shadow-inner">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-1 mb-6">
+                          {Object.entries(row).map(([key, value]) => (
+                            <div key={key} className="flex items-start gap-3 py-1 text-[11px] border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors rounded px-1">
+                              <span className="w-32 flex-shrink-0 font-bold text-gray-500 dark:text-gray-400 truncate">{key}</span>
+                              <span className="flex-1 text-gray-800 dark:text-gray-200 break-all font-medium">
+                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 tracking-wider">Raw JSON</h5>
+                            <button 
+                              onClick={() => navigator.clipboard.writeText(JSON.stringify(row, null, 2))}
+                              className="text-[10px] text-blue-500 hover:text-blue-600 font-medium"
+                            >
+                              Copy JSON
+                            </button>
+                          </div>
+                          <pre className="overflow-x-auto rounded-lg bg-white dark:bg-gray-950 p-3 text-[10px] leading-relaxed border border-gray-200 dark:border-gray-800">
+                            <code className="language-json" dangerouslySetInnerHTML={{ __html: syntaxHighlightJSON(JSON.stringify(row, null, 2)) }} />
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -899,7 +1075,7 @@ LIMIT 100`,
   const renderRawView = (events: any[]) => {
     if (!events || events.length === 0) return <div className="p-4 text-gray-500 dark:text-gray-400">No events found</div>;
     return (
-      <div className="space-y-0">
+      <div className="flex-1 overflow-y-auto space-y-0 bg-white dark:bg-gray-900 scrollbar-thin">
         {events.map((row, idx) => (
           <div key={idx} className="border-b border-gray-200 dark:border-gray-700 px-3 py-2 font-mono text-xs hover:bg-gray-50 dark:hover:bg-gray-800/50">
             <span className="text-gray-500 dark:text-gray-400">[{idx + 1}]</span>{" "}
@@ -914,12 +1090,12 @@ LIMIT 100`,
     if (!events || events.length === 0) return <div className="p-4 text-gray-500 dark:text-gray-400">No events found</div>;
     const columns = Array.from(new Set(events.flatMap((row) => Object.keys(row))));
     return (
-      <div className="w-full h-full overflow-x-auto">
+      <div className="flex-1 overflow-auto bg-white dark:bg-gray-900 scrollbar-thin">
         <table className="w-full border-collapse font-mono text-xs">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
               {columns.map((col) => (
-                <th key={col} className="sticky top-0 border-r border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400 last:border-r-0 break-words">{col}</th>
+                <th key={col} className="sticky top-0 z-10 border-r border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400 last:border-r-0 break-words">{col}</th>
               ))}
             </tr>
           </thead>
@@ -950,7 +1126,7 @@ LIMIT 100`,
 
   // ── JSX ──────────────────────────────────────────────────────
   return (
-    <div className="flex h-full flex-col space-y-4 overflow-x-hidden">
+    <div className="flex h-full flex-col space-y-4">
 
       {/* Language Selector & Controls */}
       <div className="flex-shrink-0 flex items-center justify-between rounded-lg border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
@@ -1375,10 +1551,19 @@ LIMIT 100`,
 
       {/* Results Display */}
       {result && result.success && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex-shrink-0 rounded-t-lg border border-b-0 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800">
+        <div className="flex min-h-0 flex-[2] flex-col overflow-hidden border border-gray-300 rounded-xl dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800">
+          <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between px-4 py-2">
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSidebarVisible(!sidebarVisible)}
+                  className={`mr-2 rounded p-1.5 transition-colors ${sidebarVisible ? "bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-blue-400" : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"}`}
+                  title={sidebarVisible ? "Hide Fields Sidebar" : "Show Fields Sidebar"}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </button>
                 <button onClick={() => setActiveTab("logs")} className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "logs" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"}`}>Logs</button>
                 <button onClick={() => setActiveTab("raw")} className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "raw" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"}`}>_raw</button>
                 <button onClick={() => setActiveTab("table")} className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "table" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"}`}>Table</button>
@@ -1389,13 +1574,12 @@ LIMIT 100`,
               </div>
             </div>
           </div>
-          <div className="min-h-0 flex-1 rounded-b-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-600 overflow-hidden flex flex-col">
-            <div className="min-h-0 flex-1 overflow-auto">
-              {result.data && renderEvents(pagedResultData)}
-            </div>
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {result.data && renderEvents(pagedResultData)}
+          </div>
 
-            {totalResultRows > 0 && (
-              <div className="flex-shrink-0 border-t border-gray-200 px-4 py-2.5 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300">
+          {totalResultRows > 0 && (
+            <div className="flex-shrink-0 border-t border-gray-200 px-4 py-2.5 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/50">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="tabular-nums">
                     Showing {totalResultRows === 0 ? 0 : currentResultPage * resultPageSize + 1}-
@@ -1479,7 +1663,6 @@ LIMIT 100`,
               </div>
             )}
           </div>
-        </div>
       )}
     </div>
   );
