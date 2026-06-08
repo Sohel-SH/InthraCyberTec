@@ -498,27 +498,10 @@ export default function ThreatHunt() {
                         fetchGraph(u.node_id);
                       }}
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                        isSelected ? 'text-white' : 'text-gray-700 dark:text-gray-300'
+                        isSelected 
+                          ? 'text-white bg-gradient-to-r from-[#37C7DA] to-[#5452EB] shadow-[0px_4px_10px_0px_rgba(0,0,0,0.13)]' 
+                          : 'text-gray-700 dark:text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-[#37C7DA] hover:to-[#5452EB] hover:shadow-[0px_4px_10px_0px_rgba(0,0,0,0.13)]'
                       }`}
-                      style={
-                        isSelected
-                          ? { background: 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)', boxShadow: '0px 4px 10px 0px #00000022' }
-                          : { background: 'transparent' }
-                      }
-                      onMouseEnter={e => {
-                        if (!isSelected) {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(90deg, #37C7DA 0%, #5452EB 100%)';
-                          (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
-                          (e.currentTarget as HTMLButtonElement).style.boxShadow = '0px 4px 10px 0px #00000022';
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!isSelected) {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                          (e.currentTarget as HTMLButtonElement).style.color = '';
-                          (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
-                        }
-                      }}
                     >
                       {u.user}
                     </button>

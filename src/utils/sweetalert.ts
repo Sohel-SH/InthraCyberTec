@@ -50,3 +50,19 @@ export const showConfirm = async (title: string, text: string, confirmButtonText
   });
   return result.isConfirmed;
 };
+
+export const showSessionExpiredConfirm = async () => {
+  const result = await Swal.fire({
+    title: "Session Expired",
+    text: "Your session has expired. Would you like to log in again to stay on this page and preserve your work?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#4B3ADB",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Log In Again",
+    cancelButtonText: "Go to Sign In",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+  });
+  return result.isConfirmed;
+};

@@ -1,5 +1,6 @@
 import SignInForm from "@/components/auth/SignInForm";
 import { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: {
@@ -14,5 +15,13 @@ export const metadata: Metadata = {
 };
 
 export default function SignIn() {
-  return <SignInForm />;
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
+  );
 }

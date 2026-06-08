@@ -8,7 +8,7 @@ import {
   useMemo,
 } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { showWarning } from "@/utils/sweetalert";
+import { showWarning, showSessionExpiredConfirm } from "@/utils/sweetalert";
 
 type AuthContextType = {
   initialized: boolean;
@@ -48,13 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session]);
 
+  const handleSessionExpired = useCallback(async () => {
+    const shouldLogInAgain = await showSessionExpiredConfirm();
+    if (shouldLogInAgain) {
+      await signIn("keycloak", { callbackUrl: window.location.href });
+    } else {
+      await logout();
+    }
+  }, [logout]);
+
   // Proactively handle session errors (like RefreshAccessTokenError)
   useEffect(() => {
     if (session?.error === "RefreshAccessTokenError") {
-      showWarning("Session Expired", "Your session has expired. Please sign in again.");
-      logout();
+      handleSessionExpired();
     }
-  }, [session, logout]);
+  }, [session, handleSessionExpired]);
 
   const profile = useMemo(
     () =>
