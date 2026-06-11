@@ -181,22 +181,69 @@ function drawNodeIcon(ctx: CanvasRenderingContext2D, type: string | undefined, c
 }
 
 
+import { getEncryptedStorage, setEncryptedStorage } from "@/utils/storage";
+
+const THREAT_HUNT_STORAGE_KEY = "inthra-threat-hunt-state";
+
+interface PersistedThreatHuntState {
+  selectedUserId: string | null;
+  graphData: GraphData;
+  expandedNodes: string[];
+}
+
+const defaultThreatHuntState: PersistedThreatHuntState = {
+  selectedUserId: null,
+  graphData: { nodes: [], links: [] },
+  expandedNodes: [],
+};
+
+const loadThreatHuntState = (): PersistedThreatHuntState => {
+  try {
+    const stored = getEncryptedStorage<PersistedThreatHuntState>(THREAT_HUNT_STORAGE_KEY);
+    if (!stored) return defaultThreatHuntState;
+    return { ...defaultThreatHuntState, ...stored };
+  } catch {
+    return defaultThreatHuntState;
+  }
+};
+
+const saveThreatHuntState = (state: Partial<PersistedThreatHuntState>) => {
+  try {
+    const current = loadThreatHuntState();
+    const next = { ...current, ...state };
+    setEncryptedStorage(THREAT_HUNT_STORAGE_KEY, next);
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 export default function ThreatHunt() {
   const { resolvedTheme } = useTheme();
   const { fetchWithAuth } = useApiClient();
   const isDark = resolvedTheme === "dark";
-  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [persistedState] = useState<PersistedThreatHuntState>(loadThreatHuntState);
+
+  const [graphData, setGraphData] = useState<GraphData>(persistedState.graphData);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(persistedState.selectedUserId);
   const [initialLoading, setInitialLoading] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<any>(null);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(persistedState.expandedNodes));
   const [topUsers, setTopUsers] = useState<Array<{ user: string; count_datetime: number; node_id: string }>>([]);
   const [canvasSize, setCanvasSize] = useState({ width: 835, height: 600 });
 
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    saveThreatHuntState({
+      selectedUserId,
+      graphData,
+      expandedNodes: Array.from(expandedNodes),
+    });
+  }, [selectedUserId, graphData, expandedNodes]);
 
   // Update canvas size based on container
   useEffect(() => {

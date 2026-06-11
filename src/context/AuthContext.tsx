@@ -9,6 +9,7 @@ import {
 } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { showWarning, showSessionExpiredConfirm } from "@/utils/sweetalert";
+import { clearInthraStorage } from "@/utils/storage";
 
 type AuthContextType = {
   initialized: boolean;
@@ -34,6 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     const idToken = session?.idToken;
     const issuer = session?.issuer;
+
+    // Clear all Inthra storage on intentional logout
+    clearInthraStorage();
 
     // First sign out from NextAuth
     await signOut({ redirect: false });

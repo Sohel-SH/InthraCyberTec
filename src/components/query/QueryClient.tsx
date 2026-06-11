@@ -233,23 +233,23 @@ function validateSQL(code: string): ValidationMarker[] {
 
     // ── FIX 3: Trailing junk word after identifier/string ──
     // e.g. FROM security_events randomword  or  LIMIT 100 randomword
-    {
-      const trailMatch = line.match(/(?:'[^']*'|"[^"]*"|`[^`]*`|\b\w+)\s+([a-zA-Z_][a-zA-Z0-9_]{2,})\s*(?:--|$)/);
-      if (trailMatch) {
-        const candidate = trailMatch[1];
-        if (!SQL_VALID_FOLLOWERS.has(candidate.toUpperCase())) {
-          const junkIdx = line.lastIndexOf(candidate);
-          markers.push({
-            severity: 8,
-            message: `Unexpected token '${candidate}' — not a valid SQL keyword. Check for extra text after the statement.`,
-            startLineNumber: lineNum,
-            startColumn: junkIdx + 1,
-            endLineNumber: lineNum,
-            endColumn: junkIdx + candidate.length + 1,
-          });
-        }
-      }
-    }
+    // {
+    //   const trailMatch = line.match(/(?:'[^']*'|"[^"]*"|`[^`]*`|\b\w+)\s+([a-zA-Z_][a-zA-Z0-9_]{2,})\s*(?:--|$)/);
+    //   if (trailMatch) {
+    //     const candidate = trailMatch[1];
+    //     if (!SQL_VALID_FOLLOWERS.has(candidate.toUpperCase())) {
+    //       const junkIdx = line.lastIndexOf(candidate);
+    //       markers.push({
+    //         severity: 8,
+    //         message: `Unexpected token '${candidate}' — not a valid SQL keyword. Check for extra text after the statement.`,
+    //         startLineNumber: lineNum,
+    //         startColumn: junkIdx + 1,
+    //         endLineNumber: lineNum,
+    //         endColumn: junkIdx + candidate.length + 1,
+    //       });
+    //     }
+    //   }
+    // }
 
     // ── Per-line pattern checks ──
     invalidPatterns.forEach(({ pattern, message }) => {
@@ -522,18 +522,68 @@ function validatePySpark(code: string): ValidationMarker[] {
 // ─────────────────────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────────────────────
+import { getEncryptedStorage, setEncryptedStorage } from "@/utils/storage";
+
+const STORAGE_KEY = "inthra-query-client-state";
+
+interface PersistedQueryState {
+  queryInput: string;
+  language: QueryLanguage;
+  activeTab: "logs" | "raw" | "table";
+  selectedFields: string[];
+  sidebarVisible: boolean;
+  resultPageSize: ResultPageSize;
+  resultPage: number;
+  historyPanelExpanded: boolean;
+  runHistory: RunHistoryEntry[];
+}
+
+const defaultPersistedState: PersistedQueryState = {
+  queryInput: "",
+  language: "pyspark",
+  activeTab: "logs",
+  selectedFields: ["host", "source", "sourcetype"],
+  sidebarVisible: true,
+  resultPageSize: 10,
+  resultPage: 0,
+  historyPanelExpanded: false,
+  runHistory: [],
+};
+
+const loadPersistedState = (): PersistedQueryState => {
+  try {
+    const stored = getEncryptedStorage<PersistedQueryState>(STORAGE_KEY);
+    if (!stored) return defaultPersistedState;
+    return { ...defaultPersistedState, ...stored };
+  } catch {
+    return defaultPersistedState;
+  }
+};
+
+const savePersistedState = (state: Partial<PersistedQueryState>) => {
+  try {
+    const current = loadPersistedState();
+    const next = { ...current, ...state };
+    setEncryptedStorage(STORAGE_KEY, next);
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 export default function QueryClient() {
-  const [queryInput, setQueryInput] = useState("");
-  const [language, setLanguage] = useState<QueryLanguage>("pyspark");
+  const [persistedState] = useState<PersistedQueryState>(loadPersistedState);
+
+  const [queryInput, setQueryInput] = useState(persistedState.queryInput);
+  const [language, setLanguage] = useState<QueryLanguage>(persistedState.language);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>([]);
+  const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>(persistedState.runHistory);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [activeTab, setActiveTab] = useState<"logs" | "raw" | "table">("logs");
-  const [selectedFields, setSelectedFields] = useState<string[]>(["host", "source", "sourcetype"]);
+  const [activeTab, setActiveTab] = useState<"logs" | "raw" | "table">(persistedState.activeTab);
+  const [selectedFields, setSelectedFields] = useState<string[]>(persistedState.selectedFields);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(persistedState.sidebarVisible);
   const [validationMarkers, setValidationMarkers] = useState<ValidationMarker[]>([]);
 
   // ── Save Query modal state ────────────────────────────────────
@@ -541,20 +591,35 @@ export default function QueryClient() {
   const [saveName, setSaveName] = useState("");
   const [saveDesc, setSaveDesc] = useState("");
   const [saveToast, setSaveToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-  const [historyPanelExpanded, setHistoryPanelExpanded] = useState(false);
+  const [historyPanelExpanded, setHistoryPanelExpanded] = useState(persistedState.historyPanelExpanded);
 
   const { t } = useLanguage();
   const { fetchWithAuth } = useApiClient();
 
   // Paginate large result sets client-side (page size is user-selectable).
-  const [resultPageSize, setResultPageSize] = useState<ResultPageSize>(10);
-  const [resultPage, setResultPage] = useState(0);
+  const [resultPageSize, setResultPageSize] = useState<ResultPageSize>(persistedState.resultPageSize);
+  const [resultPage, setResultPage] = useState(persistedState.resultPage);
 
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { resolvedTheme } = useTheme();
   const reduceMotion = useReducedMotion();
+
+  // ── Persist state changes to localStorage ──
+  useEffect(() => {
+    savePersistedState({
+      queryInput,
+      language,
+      activeTab,
+      selectedFields,
+      sidebarVisible,
+      resultPageSize,
+      resultPage,
+      historyPanelExpanded,
+      runHistory,
+    });
+  }, [queryInput, language, activeTab, selectedFields, sidebarVisible, resultPageSize, resultPage, historyPanelExpanded, runHistory]);
 
   // ── On mount: consume any pending query handed off from Alerts page ──
   useEffect(() => {
@@ -566,6 +631,13 @@ export default function QueryClient() {
       setTimeout(() => {
         if (monacoRef.current && editorRef.current) {
           runValidation(pending.query, pending.language as QueryLanguage, monacoRef.current, editorRef.current);
+        }
+      }, 300);
+    } else {
+      // If no pending query, run validation on the persisted query input
+      setTimeout(() => {
+        if (monacoRef.current && editorRef.current && queryInput) {
+          runValidation(queryInput, language, monacoRef.current, editorRef.current);
         }
       }, 300);
     }
@@ -623,7 +695,7 @@ LIMIT 100`,
         if (monacoRef.current && editorRef.current) {
           runValidation(code, language, monacoRef.current, editorRef.current);
         }
-      }, 400);
+      }, 2000);
     },
     [language, runValidation]
   );
