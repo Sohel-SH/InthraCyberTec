@@ -20,7 +20,7 @@
 
 export const API_CONFIG = {
   // Option 1: HTTPBin (Best for testing - shows everything you sent)
-  QUERY_ENDPOINT: "http://0.0.0.0:8000",
+  QUERY_ENDPOINT: "http://localhost:8000",
   
   // Option 2: ReqRes API (Simulates creating a user)
   // QUERY_ENDPOINT: "https://reqres.in/api/users",
